@@ -47,13 +47,18 @@ const stages = [
   },
 ];
 
+// Scroll steps the last stage keeps beyond its own, so its run plays out
+// before the section scrolls away.
+const lastHold = 1;
+const steps = stages.length + lastHold;
+
 /** One line of a program followed through the compiler, a stage per scroll step. */
 export function Pipeline({ source }: { source: Token[][] }) {
   const ref = useRef<HTMLElement>(null);
   const [stage, setStage] = useState(0);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
   useMotionValueEvent(scrollYProgress, 'change', (progress) =>
-    setStage(Math.min(Math.floor(progress * stages.length), stages.length - 1)),
+    setStage(Math.min(Math.floor(progress * steps), stages.length - 1)),
   );
 
   // Scrolls to the middle of `index`'s step.
@@ -62,7 +67,7 @@ export function Pipeline({ source }: { source: Token[][] }) {
     if (!section) return;
     const top = section.getBoundingClientRect().top + window.scrollY;
     const travel = section.offsetHeight - window.innerHeight;
-    window.scrollTo({ top: top + ((index + 0.5) / stages.length) * travel, behavior: 'smooth' });
+    window.scrollTo({ top: top + ((index + 0.5) / steps) * travel, behavior: 'smooth' });
   };
 
   const views = [
@@ -75,7 +80,7 @@ export function Pipeline({ source }: { source: Token[][] }) {
   ];
 
   return (
-    <section ref={ref} className="relative" style={{ height: `${stages.length * 80}vh` }}>
+    <section ref={ref} className="relative" style={{ height: `${steps * 80}vh` }}>
       <div className="sticky top-14 flex h-[calc(100svh-3.5rem)] items-center overflow-hidden">
         <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-14">
           <div className="min-w-0">
@@ -416,52 +421,65 @@ function MachineView() {
   );
 }
 
-// `total` after each turn of the loop, i from 0 to 4
-const totals = [0, 1, 3, 6, 10];
+// Each turn of the loop: `i`, then `total` before and after it.
+const turns = [0, 1, 2, 3, 4].map((i) => ({
+  i,
+  before: (i * (i - 1)) / 2,
+  after: (i * (i + 1)) / 2,
+}));
+// The trace's columns, as wide as its widest text.
+const column = (text: string | number, width: number) => String(text).padEnd(width);
 
 function RunView() {
-  const [turns, setTurns] = useState(0);
+  const [ran, setRan] = useState(0);
   useEffect(() => {
-    if (turns === totals.length) return;
-    const timer = setTimeout(() => setTurns(turns + 1), turns === 0 ? 900 : 450);
+    if (ran === turns.length) return;
+    const timer = setTimeout(() => setRan(ran + 1), ran === 0 ? 500 : 280);
     return () => clearTimeout(timer);
-  }, [turns]);
+  }, [ran]);
+  const done = ran === turns.length;
   return (
     <>
-      <Fade>
+      <Fade className="whitespace-pre">
         <span className="text-[#3fb8af]">$</span>{' '}
         <span className="text-[#e8eaed]">peeper run .</span>
       </Fade>
-      <div className="mt-5">
+      <div className="mt-4">
         <Thread>
           {colored('total = total + i')}
-          <span className="text-[#566170]"> → </span>
-          <span className="text-[#e8933d]">{turns ? totals[turns - 1] : '…'}</span>
+          <span className="text-[#566170]">{'  // once a turn'}</span>
         </Thread>
       </div>
-      <Fade className="mt-4 grid grid-cols-5 gap-2">
-        {totals.map((total, turn) => (
+      <Fade className="mt-3 whitespace-pre">
+        <div className="text-[#566170]">
+          {column('i', 6)}
+          {column('total + i', 14)}total
+        </div>
+        {turns.map(({ i, before, after }, turn) => (
           <div
-            key={total}
+            key={i}
             className={cn(
-              'rounded-md border py-1.5 text-center transition-colors duration-300',
-              turn < turns
-                ? 'border-[#e8933d]/60 text-[#e8933d]'
-                : 'border-[#343b46] text-[#566170]',
+              'transition-opacity duration-300',
+              turn < ran ? 'opacity-100' : 'opacity-25',
             )}
           >
-            <div className="text-[9.5px] text-[#8790a0]">i = {turn}</div>
-            {total}
+            <span className="text-[#3fb8af]">{column(i, 6)}</span>
+            {column(`${before} + ${i}`, 14)}
+            <span className={turn === ran - 1 ? 'text-[#e8933d]' : 'text-[#e8eaed]'}>{after}</span>
           </div>
         ))}
       </Fade>
       <motion.div
-        className="mt-6 text-base text-[#e8eaed] sm:text-lg"
+        className="mt-5 whitespace-pre"
         initial={{ opacity: 0, y: 6 }}
-        animate={turns === totals.length ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
-        transition={{ duration: 0.4 }}
+        animate={done ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+        transition={{ duration: 0.35 }}
       >
-        sum: 10
+        <div className="text-[#e8eaed]">sum: 10</div>
+        <div>
+          <span className="text-[#3fb8af]">$</span>{' '}
+          <span className="inline-block h-[1em] w-[0.6em] translate-y-[0.15em] animate-pulse bg-[#e8eaed]/70" />
+        </div>
       </motion.div>
     </>
   );
