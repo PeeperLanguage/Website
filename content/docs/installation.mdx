@@ -1,0 +1,96 @@
+---
+title: Build from source
+description: Set up the toolchain, build the compiler and run a program.
+---
+
+Peeper is built from source for now. The build puts the compiler, its bundled
+library, its runtime and its own LLVM toolchain in the `build/` folder.
+
+## Requirements
+
+- A Rust toolchain (`cargo`, with `rustfmt` and `clippy`).
+- `curl`, `tar` and `jq` for `scripts/setup.sh`; on Windows, PowerShell for
+  `scripts/setup.ps1`.
+- On macOS, Xcode's command line tools (`xcode-select --install`): their SDK
+  holds the C library and headers programs are built with.
+- On Windows, Git Bash, which runs `scripts/build.sh`.
+- Git.
+
+## Build
+
+<Steps>
+
+<Step>
+
+### Get the source
+
+```bash
+git clone https://github.com/PeeperLanguage/compiler.git
+cd compiler
+```
+
+</Step>
+
+<Step>
+
+### Set up the toolchain
+
+```bash
+bash scripts/setup.sh        # on Windows: pwsh scripts/setup.ps1
+```
+
+This downloads the LLVM toolchain pack CI built for your machine, checks it
+against the size and SHA-256 pinned in `toolchains/toolchains.lock.json`, and
+puts it in `build/toolchains/native`. Peeper runs only that toolchain, never a
+`clang` on your `PATH`. Without a pack for your machine, the script links an
+installed LLVM 23 or newer instead.
+
+</Step>
+
+<Step>
+
+### Build the compiler
+
+```bash
+bash scripts/build.sh
+```
+
+</Step>
+
+<Step>
+
+### Run a program
+
+```bash
+build/bin/peeper run examples/01_functions.peep
+```
+
+</Step>
+
+</Steps>
+
+## Platforms
+
+CI builds and tests the compiler on each of these, and builds a toolchain pack
+for it:
+
+| System  | Architecture | Toolchain           |
+| ------- | ------------ | ------------------- |
+| Linux   | x86-64       | LLVM                |
+| Linux   | ARM64        | LLVM                |
+| macOS   | ARM64        | LLVM                |
+| Windows | x86-64       | LLVM through llvm-mingw |
+
+On x86-64 Linux, `-target i686-linux` builds 32-bit programs too, with the
+32-bit C library installed.
+
+## Commands
+
+| Command                 | What it does                                   |
+| ----------------------- | ---------------------------------------------- |
+| `peeper init`           | Makes a new project with a `peeper.toml`.      |
+| `peeper check <path>`   | Checks a project or a file.                    |
+| `peeper build <path>`   | Builds a native executable.                    |
+| `peeper run <path>`     | Builds and runs it.                            |
+| `peeper fix <path>`     | Applies the fixes the compiler suggests.       |
+| `peeper lsp`            | Runs the language server for an editor.        |

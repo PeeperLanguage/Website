@@ -1,13 +1,21 @@
 import { llms, loader } from 'fumadocs-core/source';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
-import { docsContentRoute, docsImageRoute, docsRoute } from './shared';
-import { defineDocs } from 'fumadocs-mdx/macro';
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
+import { applyMdxPreset } from 'fumadocs-mdx/config';
+import { defineDocs } from 'fumadocs-mdx/macro';
+import { peeper } from './peeper';
+import { docsRoute } from './shared';
 
 const docs = defineDocs({
   dir: 'content/docs',
   docs: {
     schema: pageSchema,
+    mdxOptions: applyMdxPreset({
+      rehypeCodeOptions: {
+        themes: { light: 'github-light', dark: 'github-dark' },
+        langs: [peeper],
+      },
+    }),
     postprocess: {
       includeProcessedMarkdown: true,
     },

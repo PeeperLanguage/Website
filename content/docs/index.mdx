@@ -1,13 +1,58 @@
 ---
-title: Hello World
-description: Your first document
+title: Introduction
+description: An experimental systems programming language with a native compiler.
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+Peeper is an experimental systems programming language. Its compiler checks a
+program's types, paths, moves and borrows, then builds a native executable
+through LLVM.
 
-## What is Next?
+<Callout type="warn" title="Pre-release">
+  Peeper is pre-release software. The language, the package format and the
+  compiler's interfaces may change without notice. The compiler is being
+  rebuilt in Rust; this site describes what the rebuild does today.
+</Callout>
+
+## A first program
+
+```peeper title="src/main.peep"
+struct Point { x: i32, y: i32 }
+
+fn distance(a: &Point, b: &Point) -> i32 {
+    return (b.x - a.x) + (b.y - a.y);
+}
+
+fn main() {
+    let start = Point.{ x = 1, y = 2 };
+    let end: Point = .{ x = 4, y = 6 };
+    println("distance:", distance(&start, &end));
+}
+```
+
+```txt title="peeper run"
+distance: 7
+```
+
+## What the compiler does today
+
+- **Parses with recovery.** A syntax error does not stop the rest of the file
+  from being read, and many errors come with a fix that `peeper fix` or an
+  editor applies.
+- **Checks types** of integers, floats, `bool`, C strings, arrays, ranges,
+  structs, functions, constants and modules, and folds constants while
+  compiling.
+- **Checks paths:** a variable read before it is set, a missing `return`, and
+  unreachable code.
+- **Checks moves and borrows:** a struct used after it moved, or a `&mut`
+  borrow while a reference to the same value is still in use.
+- **Builds native programs** from MIR through LLVM and Clang, on Linux, macOS
+  and Windows.
+- **Answers editors** through its language server, re-checking only the
+  modules an edit affects.
+
+## Next
 
 <Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
+  <Card title="Build from source" href="/docs/installation" />
+  <Card title="Language tour" href="/docs/tour" />
 </Cards>

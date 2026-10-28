@@ -1,12 +1,21 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
-import { appName, gitConfig } from './shared';
+import { Mascot } from '@/components/mascot';
+import { appName, compilerUrl } from './shared';
 
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      // JSX supported
-      title: appName,
+      title: (
+        <>
+          <Mascot className="h-6 w-[34px] shrink-0" />
+          <span className="font-semibold tracking-tight">{appName}</span>
+        </>
+      ),
     },
-    githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
+    links: [
+      { text: 'Docs', url: '/docs', active: 'nested-url' },
+      { text: 'Tour', url: '/docs/tour' },
+    ],
+    githubUrl: compilerUrl,
   };
 }
