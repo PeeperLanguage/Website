@@ -1,0 +1,62 @@
+---
+title: Commands
+description: Every peeper command, its options, and how a project is laid out.
+---
+
+Run `peeper` with no arguments to print its usage.
+
+`path` is a project folder or a single `.peep` file. It defaults to the current
+folder.
+
+| Command | What it does |
+| --- | --- |
+| `peeper check [path]` | Reports the program's errors. |
+| `peeper fix [path]` | Applies the fixes the errors suggest, then reports what is left. |
+| `peeper build [path]` | Checks the program and links it into an executable. |
+| `peeper run [path] [arguments]` | Builds the program to a temporary file and runs it with the arguments. |
+| `peeper init [name]` | Makes the current folder a project. |
+| `peeper lsp` | Serves editors as a language server over standard input and output. |
+
+## Options
+
+- `-o program`, on `build`, names the executable. Without it, the executable
+  is named after the project or the file.
+- `-release`, on `build` and `run`, builds an optimized program without debug
+  info.
+- `-target name`, on `check`, `fix`, `build` and `run`, checks and builds for
+  another machine. For example, `-target i686-linux` builds 32-bit x86 Linux
+  programs, which a 64-bit x86 Linux runs once its 32-bit C library is
+  installed (on Fedora: `glibc-devel.i686`). An unknown name lists every
+  target.
+- `-dump`, on `check` and `fix`, also writes each module's THIR, MIR and LLVM
+  IR to `build/debug/dumps`. `-dump thir`, `-dump mir` or `-dump ll` writes
+  only that one. The home page's compile story shows these dumps for one
+  program.
+
+## Projects
+
+`peeper init` makes the current folder a project. It writes a `peeper.toml`
+that names the project, and a `src/main.peep` that holds `main`. It asks for
+the name, with the folder's name as the default, unless you give one.
+
+```bash
+mkdir hello_peeper
+cd hello_peeper
+peeper init hello_peeper
+peeper run
+```
+
+The generated `src/main.peep`:
+
+```peeper title="src/main.peep"
+fn main() {
+    Write(Stdout, c"Hello from Peeper!\n", 19);
+}
+```
+
+The name is lowercased, and spaces and `-` become `_`. `init` stops when the
+name is not a valid package name (a letter, then letters, digits and `_`), when
+it is the name of a bundled library, or when a `peeper.toml` already exists.
+An existing `src/main.peep` is kept.
+
+Each file in `src` is a module of the project. See [Modules](/docs/language/modules).

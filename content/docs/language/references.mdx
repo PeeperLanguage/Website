@@ -1,0 +1,104 @@
+---
+title: References and borrows
+description: Borrowing with & and &mut, the rules the compiler checks, and returned references.
+---
+
+`&x` lends `x` to be read, and `&mut x` lends it to be changed. The rules
+ follow Rust:
+
+ - While a `&mut` is in use, nothing else uses `x`.
+ - `x` must outlive every reference to it.
+
+ `.*` is the value a reference points to. A field is read through a reference
+ directly.
+
+```peeper
+fn shift(point: &mut Point, by: i32) {
+    point.x = point.x + by;
+    point.y = point.y + by;
+}
+```
+
+## Overlapping borrows
+
+ A `&mut` argument takes hold when the call starts. If a reference made before
+ is still used after the call, the compiler shows all three places:
+
+<Terminal output="borrow" />
+
+## Returning a reference
+
+ A function can return a reference. `in` names the parameters it borrows from.
+ Without `in`, the result borrows from every reference argument.
+
+```peeper
+fn higher(score: &Score) -> &i32 in score {
+```
+
+```peeper title="examples/11_references.peep"
+// References: `&x` lends `x` to be read and `&mut x` to be changed, as in
+// Rust: while a `&mut` is in use nothing else uses `x`, and `x` must outlive
+// every reference to it. `.*` is the value a reference refers to; a field
+// is read through a reference directly. A function may return a reference;
+// `in` names the parameters it borrows from.
+// Run: peeper run examples/11_references.peep
+struct Point { x: i32, y: i32 }
+struct Score { best: i32, last: i32 }
+
+fn sum(point: &Point) -> i32 {
+    return point.x + point.y;
+}
+
+fn shift(point: &mut Point, by: i32) {
+    point.x = point.x + by;
+    point.y = point.y + by;
+}
+
+fn double(n: &mut i32) {
+    n.* = n.* * 2;
+}
+
+// The result points into `score` only.
+fn higher(score: &Score) -> &i32 in score {
+    if score.best > score.last {
+        return &score.best;
+    }
+    return &score.last;
+}
+
+// Without `in`, the result borrows every reference argument.
+fn better(a: &Score, b: &Score) -> &Score {
+    if a.best > b.best {
+        return a;
+    }
+    return b;
+}
+
+fn main() {
+    let mut point = Point.{ x = 1, y = 2 };
+    shift(&mut point, 10);
+    println("shifted:", point, sum(&point));
+
+    let mut n = 5;
+    double(&mut n);
+    println("doubled:", n);
+
+    let lent = &mut point;
+    shift(lent, 1);                 // a `&mut` passed to a call is lent again,
+    shift(lent, 1);                 // so it is used twice
+    println("through:", lent.x, lent.*);
+
+    let alice = Score.{ best = 9, last = 4 };
+    let bob = Score.{ best = 7, last = 8 };
+    let high = higher(&bob);
+    let best = better(&alice, &bob);
+    println("higher:", high.*, "better:", best.best);
+}
+```
+
+```txt title="Output"
+shifted: Point { x: 11, y: 12 } 23
+doubled: 10
+through: 13 Point { x: 13, y: 14 }
+higher: 8 better: 9
+```

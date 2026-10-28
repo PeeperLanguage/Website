@@ -1,0 +1,104 @@
+---
+title: Raw pointers and C functions
+description: Unchecked pointers for low-level code, and calling the C library.
+---
+
+## Raw pointers
+
+ `*T` points to a `T`, and `rawptr` points to anything. Nothing checks them:
+ they are for C and low-level code.
+
+ - `@x` takes an address.
+ - `.*` reads or writes through a pointer.
+ - `none` is the null pointer.
+
+ Any `*T` passes as a `rawptr` without a cast.
+
+```peeper title="examples/13_raw_pointers.peep"
+// Raw pointers: `*T` points to a `T`, `rawptr` to anything. Nothing checks
+// them; they are for C and low-level code. `@x` takes an address, `.*`
+// reads or writes through it, and `none` is null.
+// Run: peeper run examples/13_raw_pointers.peep
+#[extern("malloc")]
+fn allocate(size: usize) -> *i32;
+
+#[extern("free")]
+fn release(memory: rawptr);         // any `*T` passes as a `rawptr`
+
+fn read_twice(pp: **i32) -> i32 {
+    return pp.*.*;                  // through two levels
+}
+
+fn keep(slot: *rawptr, p: rawptr) {
+    slot.* = p;                     // an untyped pointer, written through a pointer
+}
+
+fn main() {
+    let mut n = 7;
+    let p = @n;                     // `*i32`
+    p.* = p.* + 1;                  // n is 8
+    let mut q = p;
+    let total = read_twice(@q);     // 8; `@q` is `**i32`
+
+    let mut slot: rawptr = none;
+    keep(@slot, p);                 // `*i32` to `rawptr`, no `as` needed
+    if slot != p {
+        panic "the slot was not written";
+    }
+
+    let heap = allocate(4);
+    if heap == none {
+        panic "out of memory";
+    }
+    heap.* = 34;
+    let value = heap.*;
+    release(heap);
+    println("n:", n, "total:", total, "heap:", value);
+}
+```
+
+```txt title="Output"
+n: 8 total: 8 heap: 34
+```
+
+## C functions
+
+ `#[extern("name")]` declares a function that the C library or the runtime
+ defines. It has no body. Its parameters and result can be numbers, `bool`,
+ `cstr` or pointers. The core library declares `Write`, `Read` and `Exit`
+ this way.
+
+```peeper
+#[extern("strlen")]
+fn length(text: cstr) -> usize;
+```
+
+```peeper title="examples/17_c_functions.peep"
+// C functions: `#[extern("name")]` declares a function the C library or the
+// runtime defines, with no body. Its parameters and result are numbers,
+// `bool`, `cstr` or pointers. The core library declares `Write`, `Read` and
+// `Exit` this way.
+// Run: peeper run examples/17_c_functions.peep
+#[extern("abs")]
+fn absolute(n: i32) -> i32;
+
+#[extern("strlen")]
+fn length(text: cstr) -> usize;
+
+#[extern("toupper")]
+fn upper(character: i32) -> i32;
+
+fn main() {
+    let text = c"hello\n";
+    println("abs:", absolute(-42), "strlen:", length(text), "toupper:", upper(97));
+    Write(Stdout, text, 6);
+    Exit(3);                        // ends the program with exit code 3
+}
+```
+
+```txt title="Output"
+abs: 42 strlen: 6 toupper: 65
+hello
+```
+
+The program ends with exit code 3.

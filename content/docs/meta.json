@@ -1,4 +1,13 @@
 {
   "title": "Peeper",
-  "pages": ["---Getting started---", "index", "installation", "---Language---", "tour"]
+  "pages": [
+    "---Getting started---",
+    "index",
+    "installation",
+    "tour",
+    "---Language---",
+    "...language",
+    "---Tools---",
+    "...tools"
+  ]
 }

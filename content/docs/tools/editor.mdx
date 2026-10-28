@@ -1,0 +1,19 @@
+---
+title: Editor support
+description: The language server built into the compiler.
+---
+
+The compiler has a language server. `peeper lsp` serves an editor over standard
+input and output, so any editor with a language server client can start it.
+
+It gives:
+
+- **Errors as you type.** Only the modules an edit affects are checked again,
+  and answers keep coming while the code is broken.
+- **Hover**, which shows what a name is.
+- **Go to definition.**
+- **Quick fixes**, which are the same fixes `peeper fix` applies. See
+  [Errors and fixes](/docs/tools/errors).
+
+Point your editor's language server setting at `build/bin/peeper` with the
+argument `lsp`, for `.peep` files.

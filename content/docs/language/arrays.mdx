@@ -1,0 +1,169 @@
+---
+title: Arrays and slices
+description: Fixed arrays that copy, checked indexes, and slices that borrow.
+---
+
+## Arrays
+
+ `[N]T` holds `N` values of type `T`, and `.len` is `N`. `[_]T` counts the
+ values for you. An array copies when it is assigned or passed.
+
+```peeper
+let a = [3]i32{1, 2, 3};
+let b = [_]i64{4, 5};           // `_` counts the values
+```
+
+An index is checked against the length. If the compiler can see the index is
+ too large, it is an error:
+
+<Terminal output="index" />
+
+Otherwise the program checks it when it runs, and stops if it fails. Any
+ integer type can be an index. `values...` in an array literal gives each of
+ another array's values.
+
+```peeper title="examples/08_arrays.peep"
+// Arrays: `[N]T` holds `N` values of type `T`, and `.len` is `N`. An array
+// copies when assigned or passed. An index is checked against the length
+// when the program runs, and `values...` in an array literal gives each of
+// another array's values.
+// Run: peeper run examples/08_arrays.peep
+fn sum(values: [3]i32) -> i32 {     // gets a copy
+    return values[0] + values[1] + values[2];
+}
+
+fn tens() -> [3]i32 {
+    let mut values = [3]i32{0, 0, 0};
+    for i in 0..values.len {
+        values[i] = i as i32 * 10;
+    }
+    return values;
+}
+
+fn bump(values: &mut [3]i32) {      // changes the caller's array
+    for value in values {
+        value.* = value.* + 1;
+    }
+}
+
+fn main() {
+    let a = [3]i32{1, 2, 3};
+    let b = [_]i64{4, 5};           // `_` counts the values
+    println("arrays:", a, b, a.len);
+
+    let mut c = a;                  // a copy: `a` stays as it is
+    c[0] = 9;
+    let at: u8 = 2;                 // any integer type indexes
+    println("copy:", a[0], c[0], c[at]);
+
+    let mut grid = [2][3]i32{[3]i32{1, 2, 3}, [3]i32{4, 5, 6}};
+    grid[1][0] = 40;
+    println("nested:", grid, grid[1].len);
+
+    println("passed:", sum(a), "returned:", tens());
+    bump(&mut c);
+    println("through &mut:", c);
+
+    let mut total = 0;
+    for value in a {                // each value, copied
+        total = total + value;
+    }
+    for value in &a {               // a reference to each value
+        total = total + value.*;
+    }
+    println("loops:", total);
+    print("numbered:");
+    for i, value in a {
+        print("", i, value);
+    }
+    println();
+
+    println("spread:", [_]i32{a..., 0, a...});
+    let empty = [0]i32{};
+    println("empty:", empty.len);
+}
+```
+
+```txt title="Output"
+arrays: [1, 2, 3] [4, 5] 3
+copy: 1 9 3
+nested: [[1, 2, 3], [40, 5, 6]] 3
+passed: 6 returned: [0, 10, 20]
+through &mut: [10, 3, 4]
+loops: 12
+numbered: 0 1 1 2 2 3
+spread: [1, 2, 3, 0, 1, 2, 3]
+empty: 0
+```
+
+## Slices
+
+ `[&]T` views some elements of an array, and `[&mut]T` can also change them.
+ A slice is the elements' address and their count. It borrows like a
+ reference does: the array must outlive it, and it does not change while the
+ slice is in use.
+
+```peeper
+let middle = total(&numbers[1..3]);     // elements 1 and 2: 2 + 3 = 5
+let front = total(&numbers[..2]);       // a missing start is 0: 3
+let back = total(&numbers[4..]);        // a missing end is the length: 11
+```
+
+`&numbers` turns into a `[&]i32` where one is expected. A slice index is
+ checked against the count when the program runs.
+
+```peeper title="examples/12_slices.peep"
+// Slices: `[&]T` views some elements, `[&mut]T` can also change them. A
+// slice is the elements' address and their count; it borrows, as a
+// reference does, so the array must outlive it and is not changed while the
+// slice is in use.
+// Run: peeper run examples/12_slices.peep
+fn total(values: [&]i32) -> i32 {
+    let mut sum = 0;
+    for value in values {               // `value` is a `&i32`
+        sum = sum + value.*;
+    }
+    return sum;
+}
+
+fn fill(values: [&mut]i32, value: i32) {
+    for slot in values {                // `slot` is a `&mut i32`
+        slot.* = value;
+    }                                   // the loop only lent `values`
+}
+
+fn first(values: [&]i32) -> i32 {
+    return values[0];                   // checked against the count at run time
+}
+
+fn main() {
+    let mut numbers = [6]i32{1, 2, 3, 4, 5, 6};
+    let all = total(&numbers);              // `&numbers` turns into `[&]i32`: 21
+
+    let middle = total(&numbers[1..3]);     // elements 1 and 2: 2 + 3 = 5
+    let through = total(&numbers[1..=3]);   // `..=` takes the end too: 9
+    let front = total(&numbers[..2]);       // a missing start is 0: 3
+    let back = total(&numbers[4..]);        // a missing end is the length: 11
+    let empty = total(&numbers[3..3]);      // no elements: 0
+
+    let start: usize = 2;
+    fill(&mut numbers[start..4], 0);        // numbers is [1, 2, 0, 0, 5, 6]
+    let after = total(&numbers[..]);        // all of it, as `&numbers`: 14
+
+    let view: [&]i32 = &numbers;
+    let tail = &view[4..];                  // a slice of a slice: [5, 6]
+    let last = first(&tail[1..]);           // 6
+    let copied = [3]i32{tail..., 7};        // copies the elements: [5, 6, 7]
+
+    // `&numbers[0..7]` is an error, the array has 6 elements; with an end
+    // known only at run time, the program stops: "slice out of bounds".
+    // `[3]i32{view...}` stops it too: the literal needs exactly 3 values.
+    println("totals:", all, middle, through, front, back, empty, after);
+    println("numbers:", numbers, "last:", last, "copied:", copied);
+}
+```
+
+```txt title="Output"
+totals: 21 5 9 3 11 0 14
+numbers: [1, 2, 0, 0, 5, 6] last: 6 copied: [5, 6, 7]
+```

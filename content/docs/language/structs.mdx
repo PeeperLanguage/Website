@@ -1,0 +1,95 @@
+---
+title: Structs and type aliases
+description: Struct literals, moves, and other names for a type.
+---
+
+## Structs
+
+ `struct` names a group of fields. `Name.{ field = value }` makes one, with the
+ fields in any order. `.{ ... }` takes the type from where the value goes.
+
+```peeper
+struct Point { x: i32, y: i32 }
+let start = Point.{ y = 2, x = 1 };
+let end: Point = .{ x = 4, y = 6 };
+```
+
+## Moves
+
+ A struct moves when it is assigned or passed. The old variable is then unset.
+ A `mut` variable can be set again, and then it is usable again. Using a moved
+ variable is an error that shows where the move happened:
+
+<Terminal output="moved" />
+
+```peeper title="examples/09_structs.peep"
+// Structs: `struct` names a group of fields. `Name.{ field = value }` makes
+// one, with the fields in any order, and `.{ ... }` takes the type from
+// where it goes. A struct moves when assigned or passed: the old variable
+// is then unset, until a `mut` one is set again.
+// Run: peeper run examples/09_structs.peep
+struct Point { x: i32, y: i32 }
+struct Line { start: Point, end: Point, weight: f32 }
+struct Empty {}
+
+fn length(line: Line) -> i32 {      // takes the line, moved in
+    return line.end.x - line.start.x + line.end.y - line.start.y;
+}
+
+fn main() {
+    let start = Point.{ y = 2, x = 1 };
+    let end: Point = .{ x = 4, y = 6 };
+    let mut line = Line.{ start = start, end = end, weight = 1.5 };
+    line.start.x = 0;               // a field of a field
+    line.weight = 2.0;
+    println("line:", line);
+    println("fields:", line.start.x, line.end.y, line.weight);
+    println("length:", length(line));   // `line` moves; it is unset now
+
+    let mut point = Point.{ x = 1, y = 1 };
+    let taken = point;              // moves `point`
+    point = Point.{ x = taken.y, y = 5 };   // set again, so usable
+    println("again:", point, taken);
+    println("empty:", Empty.{});
+}
+```
+
+```txt title="Output"
+line: Line { start: Point { x: 0, y: 2 }, end: Point { x: 4, y: 6 }, weight: 2.0 }
+fields: 0 6 2.0
+length: 8
+again: Point { x: 1, y: 5 } Point { x: 1, y: 1 }
+empty: Empty {}
+```
+
+## Type aliases
+
+ `type Name = T` gives `T` another name. Values of the alias and of `T` mix
+ freely, and an alias can name a type declared after it.
+
+```peeper title="examples/10_type_aliases.peep"
+// Type aliases: `type Name = T` gives `T` another name. A value of the alias
+// and of `T` mix freely; an alias may name one declared after it.
+// Run: peeper run examples/10_type_aliases.peep
+type Distance = Meters;
+type Meters = i32;
+type Origin = Point;
+struct Point { x: Meters, y: Meters }
+
+const Limit: Meters = 40;
+
+fn double(length: Meters) -> Distance {
+    return length * 2;
+}
+
+fn main() {
+    let half: Meters = 21;
+    let whole: i32 = double(half);  // a `Distance` is an `i32`
+    let home: Origin = Point.{ x = 0, y = whole };
+    println("whole:", whole, "over limit:", whole > Limit, "home:", home);
+}
+```
+
+```txt title="Output"
+whole: 42 over limit: true home: Point { x: 0, y: 42 }
+```

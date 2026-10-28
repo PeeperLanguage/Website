@@ -1,0 +1,61 @@
+---
+title: Errors and fixes
+description: How to read a Peeper error, and which ones peeper fix applies for you.
+---
+
+Every error on this page is what `peeper check` printed for a small program.
+
+## Reading an error
+
+<Terminal output="unset" />
+
+- **The first line** gives the code and what is wrong.
+- **`-->`** gives the file, line and column.
+- **The labels** under the code point at each place that matters. Here they
+  show where `value` was declared and where it is read.
+- **`= note:`** explains the rule, and **`= help:`** suggests a change.
+
+## The code's letter
+
+The letter says which part of the compiler found the problem:
+
+| Letter | Found while |
+| --- | --- |
+| `L` | reading the characters of the file |
+| `P` | parsing the code into a tree |
+| `M` | resolving modules and imports |
+| `T` | checking types, paths, moves and borrows |
+| `W` | looking for likely mistakes: a warning, not an error |
+
+## Fixes
+
+Some errors carry a fix, marked `= fix:`, with the changed line under it and
+the new text highlighted. `peeper fix` applies these fixes to your files, and
+an editor offers them as quick fixes.
+
+<Terminal output="semicolon" />
+
+<Terminal output="deref" />
+
+```txt title="peeper fix"
+fixed src/main.peep:4:19: add `.*` to use the value it points to
+```
+
+A `= help:` line is only a suggestion, and `peeper fix` leaves it to you. A
+guess at a mistyped name is one:
+
+<Terminal output="typo" />
+
+## More errors
+
+A function that can end without returning its value:
+
+<Terminal output="noReturn" />
+
+The other pages show errors where their rules come up:
+[assigning without `mut`](/docs/language/variables),
+[narrowing a number](/docs/language/numbers),
+[an index out of bounds](/docs/language/arrays),
+[using a moved value](/docs/language/structs),
+[overlapping borrows](/docs/language/references) and
+[a private name](/docs/language/modules).

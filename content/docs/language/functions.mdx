@@ -1,0 +1,139 @@
+---
+title: Functions and constants
+description: Functions, parameters, results, and constants worked out while compiling.
+---
+
+A function takes typed parameters and may give a result. The program starts
+ at `main`. When `main` gives an `i32`, that number is the program's exit code.
+
+```peeper
+fn square(x: i64) -> i64 {
+    return x * x;
+}
+```
+
+A function can be declared after the code that calls it, and it can call
+ itself. A parameter written `_` is taken but has no name. A function without
+ a result ends at its last line.
+
+```peeper
+fn first(value: i32, _: i32) -> i32 {
+    return value;
+}
+```
+
+## Constants
+
+ `const` names a value the compiler works out while compiling. If the constant
+ has no type, it takes the type of the place it is used in. A constant can also
+ be declared inside a function body.
+
+```peeper
+const Limit = 10;                   // its type comes from where it is used
+const Answer: i32 = Limit * 4 + 2;  // or is written
+```
+
+```peeper title="examples/01_functions.peep"
+// Functions and constants. A function takes typed parameters and may give a
+// result. The program starts at `main`; its `i32` result is the exit code.
+// A constant's value is computed while compiling.
+// Run: peeper run examples/01_functions.peep
+const Limit = 10;                   // its type comes from where it is used
+const Answer: i32 = Limit * 4 + 2;  // or is written
+
+fn square(x: i64) -> i64 {
+    return x * x;
+}
+
+fn main() -> i32 {
+    const Local = 3;                // a constant inside a body
+    println("square:", square(Limit));
+    println("gcd:", gcd(48, 18));
+    println("first:", first(Local, 99));
+    greet();
+    return Answer - 42;             // exit code 0
+}
+
+// A function may be declared after the code that calls it, and may call
+// itself.
+fn gcd(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        return a;
+    }
+    return gcd(b, a % b);
+}
+
+// A parameter written `_` is taken and names nothing.
+fn first(value: i32, _: i32) -> i32 {
+    return value;
+}
+
+// Without a result, a function ends at its last line.
+fn greet() {
+    println("hello from peeper");
+}
+```
+
+```txt title="Output"
+square: 100
+gcd: 6
+first: 3
+hello from peeper
+```
+
+## Calls while compiling
+
+ A constant's value can call a function. The call runs while compiling, and
+ the program only holds its result. Such a function can use numbers, `bool`,
+ variables, loops, branches, calls and panics. Structs, arrays, references and
+ printing only run in the program for now. The same function can still be
+ called normally when the program runs.
+
+```peeper
+const Fib90 = fib(90);
+const Big = factorial(20) + 1;
+```
+
+```peeper title="examples/16_compile_time_calls.peep"
+// Compile-time calls: a constant's value may call a function. The call runs
+// while compiling, and the program holds only its result. Such a function
+// may use numbers, `bool`, variables, loops, branches, calls and panics;
+// structs, arrays, references and printing run only in the program for now.
+// Run: peeper run examples/16_compile_time_calls.peep
+fn fib(n: u32) -> u64 {
+    let mut a: u64 = 0;
+    let mut b: u64 = 1;
+    for 0..n {
+        let next = a + b;
+        a = b;
+        b = next;
+    }
+    return a;
+}
+
+fn factorial(n: u64) -> u64 {
+    if n <= 1 {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+const Fib90 = fib(90);
+const Big = factorial(20) + 1;
+const Square = square(12);          // declared below
+
+fn square(n: i32) -> i32 {
+    return n * n;
+}
+
+fn main() {
+    const Local = fib(10) * 2;      // in a body too
+    println("constants:", Fib90, Big, Square, Local);
+    println("at run time:", fib(20)); // the same function, run as usual
+}
+```
+
+```txt title="Output"
+constants: 2880067194370816120 2432902008176640001 144 110
+at run time: 6765
+```

@@ -2,12 +2,12 @@
 import { Check, Wrench } from 'lucide-react';
 import { motion } from 'motion/react';
 import { terminalLines } from '@/lib/ansi';
-import { borrowError } from './borrow-error';
+import { terminalOutput } from '@/lib/terminal-output';
 import { Inline } from './inline';
 import { SectionHeading } from './section-heading';
 import { Window } from './window';
 
-const lines = terminalLines(borrowError);
+const lines = terminalLines(terminalOutput.borrow);
 
 const points = [
   'Every label is a place in your code: where the reference was made, where the borrow starts, where the reference is used.',

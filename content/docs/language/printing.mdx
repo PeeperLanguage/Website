@@ -1,0 +1,98 @@
+---
+title: Printing and panics
+description: print and println, writing bytes, and stopping the program.
+---
+
+## Printing
+
+ `print` writes its values with a space between each one, and `println` adds a
+ newline. They take numbers, `bool`, C strings (`c"..."`, of type `cstr`),
+ plain string literals, raw pointers, arrays, structs and references to them.
+
+ `Write` from the core library writes bytes to a file descriptor: `Stdout` or
+ `Stderr`.
+
+```peeper title="examples/14_printing.peep"
+// Printing: `print` writes its values with a space between each, and
+// `println` adds a newline. They take numbers, `bool`, `cstr` (a C string,
+// `c"..."`), plain string literals, raw pointers, arrays, structs and
+// references to them. `Write` from the core library writes bytes to a file
+// descriptor: `Stdout` or `Stderr`.
+// Run: peeper run examples/14_printing.peep
+struct Point { x: i32, y: i32 }
+
+const Name: cstr = c"peeper";
+
+fn main() {
+    println("numbers:", -5i8, 18446744073709551615u64, 0.1 + 0.2, 1e16);
+    println("bools:", true, 1 > 2);
+    println("text:", Name, "100% sure");
+    let point = Point.{ x = 3, y = 4 };
+    println("values:", point, &point, [3]i32{1, 2, 3});
+    let nothing: rawptr = none;
+    println("pointer:", nothing);
+
+    print("no newline,");
+    print(" then one");
+    println();
+
+    Write(Stdout, c"written to stdout\n", 18);
+    Write(Stderr, c"written to stderr\n", 18);
+}
+```
+
+```txt title="Output"
+numbers: -5 18446744073709551615 0.30000000000000004 1e+16
+bools: true false
+text: peeper 100% sure
+values: Point { x: 3, y: 4 } Point { x: 3, y: 4 } [1, 2, 3]
+pointer: 0x0
+no newline, then one
+written to stdout
+written to stderr
+```
+
+## Panics
+
+ `panic "message"` stops the program with exit code 101. A path that ends in a
+ panic needs no `return`.
+
+ The program also stops this way when a check fails while it runs:
+
+ - a division by zero;
+ - an index or slice out of bounds;
+ - a range step of 0.
+
+ The message says where it stopped.
+
+```peeper title="examples/15_panics.peep"
+// Panics: `panic "message"` stops the program with exit code 101, and a
+// path ending in one needs no `return`. The program also stops this way on
+// a failed run-time check: a division by zero, an index or slice out of
+// bounds, or a range step of 0. This program ends in a panic.
+// Run: peeper run examples/15_panics.peep
+fn half(n: i32) -> i32 {
+    if n % 2 == 0 {
+        return n / 2;
+    }
+    panic "odd number given";
+}
+
+fn main() {
+    println("half of 8:", half(8));
+    let values = [3]i32{1, 2, 3};
+    let at: usize = 2;
+    println("last:", values[at]);   // checked: an index of 3 would stop here
+    println("half of 7:", half(7)); // stops: "panic: odd number given"
+    println("never printed");
+}
+```
+
+```txt title="Output"
+half of 8: 4
+last: 3
+panic: odd number given
+  --> 15_panics.peep:10:5
+```
+
+The program ends with exit code 101.
