@@ -1,6 +1,5 @@
-import 'server-only';
-import { createHighlighterCore } from 'shiki/core';
-import { createOnigurumaEngine } from 'shiki/engine/oniguruma';
+import { createHighlighterCore, type HighlighterCore } from 'shiki/core';
+import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
 import { peeper } from './peeper';
 
 /** One colored piece of a line: its text and its light and dark colors. */
@@ -10,16 +9,16 @@ export interface Token {
   dark: string;
 }
 
-// Only Peeper and the two themes: the home page highlights nothing else.
-const highlighter = createHighlighterCore({
+// Only Peeper and the two themes: the site highlights nothing else.
+export const highlighter = createHighlighterCore({
   themes: [import('shiki/themes/github-light.mjs'), import('shiki/themes/github-dark.mjs')],
   langs: [peeper],
-  engine: createOnigurumaEngine(import('shiki/wasm')),
+  engine: createJavaScriptRegexEngine(),
 });
 
-/** The lines of Peeper `code`, each as its colored tokens. */
-export async function peeperLines(code: string): Promise<Token[][]> {
-  const { tokens } = (await highlighter).codeToTokens(code.trimEnd(), {
+/** Every line of Peeper `code`, each as its colored tokens. */
+export function peeperTokens(highlighter: HighlighterCore, code: string): Token[][] {
+  const { tokens } = highlighter.codeToTokens(code, {
     lang: 'peeper',
     themes: { light: 'github-light', dark: 'github-dark' },
     defaultColor: false,
@@ -31,4 +30,9 @@ export async function peeperLines(code: string): Promise<Token[][]> {
       dark: token.htmlStyle?.['--shiki-dark'] ?? 'inherit',
     })),
   );
+}
+
+/** The lines of a finished sample of Peeper `code`. */
+export async function peeperLines(code: string): Promise<Token[][]> {
+  return peeperTokens(await highlighter, code.trimEnd());
 }

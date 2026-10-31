@@ -8,7 +8,8 @@
     "start": "next start",
     "types:check": "next typegen && tsc --noEmit",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "checker": "cargo build --manifest-path ../compiler/Cargo.toml -p browser --profile wasm --target wasm32-wasip1 && cp ../compiler/target/wasm32-wasip1/wasm/browser.wasm public/peeper-check.wasm"
   },
   "dependencies": {
     "cn": "^0.5.0",
