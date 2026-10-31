@@ -21,11 +21,23 @@ export interface Entry {
   related: Place[];
 }
 
+/** What a program did when it ran. */
+export interface Ran {
+  output: { stream: 'stdout' | 'stderr'; text: string }[]; // as written, a panic's text last
+  exit_code: number;
+}
+
 export interface CheckRequest {
   id: number;
   files: Record<string, string>;
+  run?: boolean; // run the program too, if the check lets it start
 }
 
 export type CheckReply =
   | { id: number; entries: Entry[]; failure?: undefined }
   | { id: number; failure: string; entries?: undefined };
+
+/** What pressing Run gave: `diagnostics` as a terminal shows them, and `run` if it started. */
+export type RunReply =
+  | { id: number; diagnostics: string; run: Ran | null; failure?: undefined }
+  | { id: number; failure: string; diagnostics?: undefined };

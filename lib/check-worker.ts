@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
-import type { CheckReply, CheckRequest } from './checker';
+import type { CheckReply, CheckRequest, RunReply } from './checker';
 
 // The compiler's checker, `crates/driver/browser` in the compiler repo, is a
-// program that reads the files from stdin and writes its findings to stdout.
+// program that reads a request from stdin and writes its findings to stdout.
 // This gives it those two streams, and the few other calls Rust's standard
 // library makes; it touches no disk here, so the rest report that none is there.
 const checker = WebAssembly.compileStreaming(fetch('/peeper-check.wasm'));
@@ -100,13 +100,13 @@ async function run(input: string): Promise<{ code: number; output: string }> {
 // `RangeError`. That ends this one instance, and `run` starts a new one for
 // each check, so the next check is not touched.
 addEventListener('message', async ({ data }: MessageEvent<CheckRequest>) => {
-  let reply: CheckReply;
+  let reply: CheckReply | RunReply;
   try {
-    const { code, output } = await run(JSON.stringify(data.files));
-    reply =
-      code === 0
-        ? { id: data.id, entries: JSON.parse(output) }
-        : { id: data.id, failure: 'the checker could not read the code' };
+    const { files, run: runs } = data;
+    const { code, output } = await run(JSON.stringify({ files, run: runs }));
+    if (code !== 0) reply = { id: data.id, failure: 'the checker could not read the code' };
+    else if (runs) reply = { id: data.id, ...JSON.parse(output) };
+    else reply = { id: data.id, entries: JSON.parse(output) };
   } catch (stopped) {
     const failure =
       stopped instanceof WebAssembly.RuntimeError || stopped instanceof RangeError
