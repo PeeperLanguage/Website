@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/** A desktop window frame with a title, for code and terminal output. */
+/** A desktop window frame with a title and any `actions`, for code and terminal output. */
 export function Window({
   title,
+  actions,
   children,
   className,
 }: {
-  title: string;
+  title: ReactNode;
+  actions?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
@@ -19,10 +21,11 @@ export function Window({
       )}
     >
       <div className="flex items-center gap-1.5 border-b px-4 py-2.5">
-        <span className="size-2.5 rounded-full bg-red-400/80" />
-        <span className="size-2.5 rounded-full bg-amber-400/80" />
-        <span className="size-2.5 rounded-full bg-emerald-400/80" />
+        <span className="size-2.5 shrink-0 rounded-full bg-red-400/80" />
+        <span className="size-2.5 shrink-0 rounded-full bg-amber-400/80" />
+        <span className="size-2.5 shrink-0 rounded-full bg-emerald-400/80" />
         <span className="ml-3 truncate font-mono text-xs text-fd-muted-foreground">{title}</span>
+        {actions && <div className="ml-auto flex shrink-0 items-center pl-2">{actions}</div>}
       </div>
       {children}
     </div>

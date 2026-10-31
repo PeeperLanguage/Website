@@ -17,8 +17,8 @@ Open http://localhost:3000 with your browser to see the result.
 
 ## Playground checker
 
-`public/peeper-check.wasm` is the compiler's checker, built from the compiler
-repo beside this one. After a language change there, run `npm run checker` and
+`public/peeper-check.wasm` is the compiler's checker, which also runs programs
+with its interpreter, built from the compiler repo beside this one. After a language change there, run `npm run checker` and
 name the compiler commit in the commit that updates the file.
 
 ## Explore
