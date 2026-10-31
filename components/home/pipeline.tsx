@@ -63,7 +63,9 @@ const stages = [
 // put to be read, and the share of the rest by which the last row starts after
 // the first, so the change sweeps down the code.
 const hold = 0.12;
-const sweepDelay = 0.5;
+const sweepDelay = 0.12;
+// How far a row blurs halfway through its morph, in pixels, sized to text of 13px.
+const maxBlur = 1.3;
 // What the window takes of the height the board may grow to: title bar and margins.
 const windowChrome = '4.5rem';
 
@@ -101,13 +103,17 @@ function zebra(rows: { line: number }[]) {
   });
 }
 
-/** Where `row` is, and how much of it shows, `sweep` of the way from stage `from` to the next. */
+/**
+ * Where `row` is and how much of it shows, `sweep` of the way from stage `from` to the next. The
+ * rows of both stages blur and fade together under one filter that sharpens what is left, so the
+ * old text melts into the new: `--morph` and `--blur`. With reduced motion it only fades (`--fade`).
+ */
 function placement(
   { stage, index, previous, next }: PlacedRow,
   from: number,
   sweep: number,
   counts: number[],
-) {
+): Record<string, string | number> {
   const leaving = stage === from;
   if (!leaving && stage !== from + 1) return { transform: 'none', opacity: 0 };
   const turn = unit((sweep - (index / counts[stage]) * sweepDelay) / (1 - sweepDelay));
@@ -118,7 +124,10 @@ function placement(
   const there = `${leaving ? next : previous} * var(--row-${otherStage})`;
   return {
     transform: `translateY(calc(${1 - away} * ${here} + ${away} * ${there}))`,
-    opacity: leaving ? unit(1 - 2 * turn) : unit(2 * turn - 1),
+    opacity: 1,
+    '--fade': leaving ? unit(1 - 2 * turn) : unit(2 * turn - 1),
+    '--morph': unit(2 * (leaving ? 1 - turn : turn)),
+    '--blur': `${2 * Math.min(turn, 1 - turn) * maxBlur}px`,
   };
 }
 
@@ -133,6 +142,7 @@ export function Pipeline({ source }: { source: Token[][] }) {
   const section = useRef<HTMLElement>(null);
   const bars = useRef<(HTMLSpanElement | null)[]>([]);
   const elements = useRef<(HTMLDivElement | null)[]>([]);
+  const bands = useRef<(HTMLDivElement | null)[]>([]);
   const board = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState(0);
   const { scrollYProgress } = useScroll({ target: section, offset: ['start start', 'end end'] });
@@ -157,6 +167,14 @@ export function Pipeline({ source }: { source: Token[][] }) {
     return { rows, counts: byStage.map((rowsOfStage) => rowsOfStage.length) };
   }, [source]);
 
+  const rowStyle = (row: PlacedRow) =>
+    ({
+      ...placement(row, 0, 0, counts),
+      height: `var(--row-${row.stage})`,
+      lineHeight: `var(--row-${row.stage})`,
+      fontSize: `min(13px, 0.74 * var(--row-${row.stage}))`,
+    }) as CSSProperties;
+
   // Writes to the rows directly, since each scroll step moves all of them.
   const paint = (progress: number) => {
     const at = progress * (stages.length - 1);
@@ -165,10 +183,16 @@ export function Pipeline({ source }: { source: Token[][] }) {
     bars.current.forEach((bar, index) => {
       if (bar) bar.style.transform = `scaleX(${unit(at - index + 1)})`;
     });
-    if (board.current) board.current.style.height = rowsHeight(from, sweep, counts);
+    if (board.current) {
+      board.current.style.height = rowsHeight(from, sweep, counts);
+      const morphing = sweep > 0 && sweep < 1;
+      board.current.style.setProperty('--morph-filter', morphing ? 'url(#text-morph)' : 'none');
+    }
     rows.forEach((row, id) => {
-      const element = elements.current[id];
-      if (element) Object.assign(element.style, placement(row, from, sweep, counts));
+      const placed = Object.entries(placement(row, from, sweep, counts));
+      for (const layer of [elements.current[id], bands.current[id]]) {
+        for (const [name, value] of placed) layer?.style.setProperty(name, String(value));
+      }
     });
     setStage(Math.round(at));
   };
@@ -259,6 +283,11 @@ export function Pipeline({ source }: { source: Token[][] }) {
             {/* A box of fixed height, whose size the rows read, and the window centered in it. */}
             <div className="h-[max(12rem,min(24rem,calc(100svh-20rem)))] [container-type:size] sm:h-[max(12rem,min(27rem,calc(100svh-20rem)))] lg:h-[min(44rem,calc(100svh-7rem))] [@media(max-height:500px)]:h-[calc(100svh-5rem)]">
               <div className="flex h-full flex-col justify-center" style={rowHeights}>
+                <svg aria-hidden="true" className="absolute size-0">
+                  <filter id="text-morph">
+                    <feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 7 -1.2" />
+                  </filter>
+                </svg>
                 <Window title={stages[stage].file}>
                   {/* The rows of every stage, one over another, for sight only: the text beside them says it in words. */}
                   <div
@@ -272,28 +301,39 @@ export function Pipeline({ source }: { source: Token[][] }) {
                         // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list
                         key={id}
                         ref={(element) => {
-                          elements.current[id] = element;
+                          bands.current[id] = element;
                         }}
                         className={cn(
-                          'absolute inset-x-0 top-0 overflow-hidden border-l-2 pl-3 whitespace-pre text-fd-muted-foreground',
-                          row.line === 0 && 'border-transparent',
+                          "absolute inset-x-0 top-0 before:absolute before:inset-0 before:border-l-2 before:opacity-(--fade) before:content-['']",
+                          row.line === 0 && 'before:border-transparent',
                           row.line !== 0 &&
-                            (row.line < mainLine ? 'border-brand' : 'border-brand-3'),
+                            (row.line < mainLine ? 'before:border-brand' : 'before:border-brand-3'),
                           row.line !== 0 &&
                             (row.shaded
-                              ? 'bg-fd-foreground/[0.05] dark:bg-fd-foreground/[0.08]'
-                              : 'bg-fd-foreground/[0.02] dark:bg-fd-foreground/[0.03]'),
+                              ? 'before:bg-fd-foreground/[0.05] dark:before:bg-fd-foreground/[0.08]'
+                              : 'before:bg-fd-foreground/[0.02] dark:before:bg-fd-foreground/[0.03]'),
                         )}
-                        style={{
-                          ...placement(row, 0, 0, counts),
-                          height: `var(--row-${row.stage})`,
-                          lineHeight: `var(--row-${row.stage})`,
-                          fontSize: `min(13px, 0.74 * var(--row-${row.stage}))`,
-                        }}
-                      >
-                        <CodeTokens tokens={row.tokens} />
-                      </div>
+                        style={rowStyle(row)}
+                      />
                     ))}
+                    {/* The text apart from the bands, which that filter would turn solid. */}
+                    <div className="absolute inset-0 motion-safe:[filter:var(--morph-filter,none)]">
+                      {rows.map((row, id) => (
+                        <div
+                          // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list
+                          key={id}
+                          ref={(element) => {
+                            elements.current[id] = element;
+                          }}
+                          className="absolute inset-x-0 top-0 pl-3.5 whitespace-pre text-fd-card-foreground"
+                          style={rowStyle(row)}
+                        >
+                          <span className="block motion-safe:opacity-(--morph) motion-safe:[filter:blur(var(--blur,0))] motion-reduce:opacity-(--fade)">
+                            <CodeTokens tokens={row.tokens} />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </Window>
               </div>
