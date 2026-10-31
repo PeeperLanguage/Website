@@ -1,179 +1,35 @@
 'use client';
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from 'motion/react';
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
-import { CodeTokens } from '@/components/code-card';
+import { useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
+import { unit } from '@/lib/easing';
 import type { Token } from '@/lib/highlight';
-import { binary, llvm, machine, mainLine, mir, run, type StoryRow, thir } from './story';
+import { bandStyle, rowHeightsStyle, rowsHeight, storyRows } from './pipeline-rows';
+import { mainLine, stages } from './story';
+import { useGlyphCanvas } from './use-glyph-canvas';
 import { Window } from './window';
 
-const stages = [
-  {
-    tab: 'Source',
-    file: 'src/main.peep',
-    title: 'You write a program.',
-    text: 'Scroll, and this whole program turns into what the processor runs. Each band is one source line, and the bar beside it says which function it is in. Every step is what the compiler really wrote.',
-    rows: [],
-  },
-  {
-    tab: 'THIR',
-    file: 'main.thir',
-    title: 'Every name gets an identity.',
-    text: 'The checker resolves each name and type. `a` becomes the local `a.0`, `b` becomes `b.1`, and each literal is now an `i32`.',
-    rows: thir,
-  },
-  {
-    tab: 'MIR',
-    file: 'main.mir',
-    title: 'The code becomes a graph.',
-    text: 'Lowering turns each function into blocks and jumps. On this graph the compiler checks that every path returns, nothing is used after it moves, and no borrow overlaps a `&mut`.',
-    rows: mir,
-  },
-  {
-    tab: 'LLVM IR',
-    file: 'main.ll',
-    title: 'The graph becomes LLVM IR.',
-    text: 'Each block becomes LLVM text, written on worker threads while the next module is still being checked.',
-    rows: llvm,
-  },
-  {
-    tab: 'x86-64',
-    file: 'objdump -d main',
-    title: 'LLVM IR becomes machine code.',
-    text: 'Clang compiles the modules, one per core. Each instruction is now a few bytes, shown beside what they mean.',
-    rows: machine,
-  },
-  {
-    tab: 'Binary',
-    file: 'main',
-    title: 'Only the bytes are left.',
-    text: 'This is all the processor sees of `max` and `main`. The linker adds Peeper’s runtime, and a `-release` build of this program comes to about 8 KB.',
-    rows: binary,
-  },
-  {
-    tab: 'Run',
-    file: 'terminal',
-    title: 'And it runs.',
-    text: '`peeper run` builds the program, then runs it. `max(2, 3)` is `3`.',
-    rows: run,
-  },
-];
-
-// Parts of a stage's scroll span: the share at each end where its rows stay
-// put to be read, and the share of the rest by which the last row starts after
-// the first, so the change sweeps down the code.
+// The share at each end of a stage's scroll span where its rows stay put to be read.
 const hold = 0.12;
-const sweepDelay = 0.12;
-// How far a row blurs halfway through its morph, in pixels, sized to text of 13px.
-const maxBlur = 1.3;
-// What the window takes of the height the board may grow to: title bar and margins.
-const windowChrome = '4.5rem';
-
-const unit = (value: number) => Math.min(Math.max(value, 0), 1);
-
-/** A row of a stage, with the rows it comes from and goes to in the stages beside it. */
-type PlacedRow = {
-  stage: number;
-  index: number;
-  line: number;
-  tokens: Token[];
-  shaded: boolean;
-  previous: number;
-  next: number;
-};
-
-/** Which of `to`'s rows the row at `index` of `from` turns into: one of its source line's. */
-function counterpart(from: { line: number }[], index: number, to: { line: number }[]) {
-  const line = from[index].line;
-  const own = to.flatMap((row, at) => (row.line === line ? [at] : []));
-  if (line === 0 || own.length === 0) {
-    return Math.min(Math.round((index / from.length) * to.length), to.length - 1);
-  }
-  const siblings = from.flatMap((row, at) => (row.line === line ? [at] : []));
-  return own[Math.floor((siblings.indexOf(index) / siblings.length) * own.length)];
-}
-
-/** Whether each row takes the darker band: they swap with each source line, from the light one. */
-function zebra(rows: { line: number }[]) {
-  let shaded = true;
-  return rows.map(({ line }, index) => {
-    if (line === 0) shaded = true;
-    else if (line !== rows[index - 1]?.line) shaded = !shaded;
-    return shaded;
-  });
-}
-
-/**
- * Where `row` is and how much of it shows, `sweep` of the way from stage `from` to the next. The
- * rows of both stages blur and fade together under one filter that sharpens what is left, so the
- * old text melts into the new: `--morph` and `--blur`. With reduced motion it only fades (`--fade`).
- */
-function placement(
-  { stage, index, previous, next }: PlacedRow,
-  from: number,
-  sweep: number,
-  counts: number[],
-): Record<string, string | number> {
-  const leaving = stage === from;
-  if (!leaving && stage !== from + 1) return { transform: 'none', opacity: 0 };
-  const turn = unit((sweep - (index / counts[stage]) * sweepDelay) / (1 - sweepDelay));
-  const smooth = turn * turn * (3 - 2 * turn);
-  const away = leaving ? smooth : 1 - smooth;
-  const otherStage = leaving ? stage + 1 : stage - 1;
-  const here = `${index} * var(--row-${stage})`;
-  const there = `${leaving ? next : previous} * var(--row-${otherStage})`;
-  return {
-    transform: `translateY(calc(${1 - away} * ${here} + ${away} * ${there}))`,
-    opacity: 1,
-    '--fade': leaving ? unit(1 - 2 * turn) : unit(2 * turn - 1),
-    '--morph': unit(2 * (leaving ? 1 - turn : turn)),
-    '--blur': `${2 * Math.min(turn, 1 - turn) * maxBlur}px`,
-  };
-}
-
-/** The height of the rows of stage `from`, or of the next one, `sweep` of the way between them. */
-function rowsHeight(from: number, sweep: number, counts: number[]) {
-  const here = `${1 - sweep} * ${counts[from]} * var(--row-${from})`;
-  return `calc(${here} + ${sweep} * ${counts[from + 1]} * var(--row-${from + 1}))`;
-}
 
 /** A program turning into machine code and running, moved along by the scroll. */
 export function Pipeline({ source }: { source: Token[][] }) {
   const section = useRef<HTMLElement>(null);
   const bars = useRef<(HTMLSpanElement | null)[]>([]);
-  const elements = useRef<(HTMLDivElement | null)[]>([]);
   const bands = useRef<(HTMLDivElement | null)[]>([]);
   const board = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState(0);
   const { scrollYProgress } = useScroll({ target: section, offset: ['start start', 'end end'] });
+  const { rows, counts, glyphs } = useMemo(() => storyRows(source), [source]);
 
-  const { rows, counts } = useMemo(() => {
-    const byStage = stages.map(({ rows }, stage) =>
-      stage === 0
-        ? source.map((tokens, index) => ({ line: tokens.length > 0 ? index + 1 : 0, tokens }))
-        : rows.map(([line, text]: StoryRow) => ({ line, tokens: colored(text) })),
-    );
-    const rows = byStage.flatMap((rowsOfStage, stage) => {
-      const shades = zebra(rowsOfStage);
-      return rowsOfStage.map((row, index) => ({
-        ...row,
-        stage,
-        index,
-        shaded: shades[index],
-        previous: counterpart(rowsOfStage, index, byStage[Math.max(stage - 1, 0)]),
-        next: counterpart(rowsOfStage, index, byStage[Math.min(stage + 1, stages.length - 1)]),
-      }));
-    });
-    return { rows, counts: byStage.map((rowsOfStage) => rowsOfStage.length) };
-  }, [source]);
-
-  const rowStyle = (row: PlacedRow) =>
-    ({
-      ...placement(row, 0, 0, counts),
-      height: `var(--row-${row.stage})`,
-      lineHeight: `var(--row-${row.stage})`,
-      fontSize: `min(13px, 0.74 * var(--row-${row.stage}))`,
-    }) as CSSProperties;
+  // The page sizes the rows in CSS, so the canvas reads a stage's row height off its first band.
+  const rowHeight = (stage: number) => {
+    const band = bands.current[rows.findIndex((row) => row.stage === stage)];
+    return band?.getBoundingClientRect().height ?? 0;
+  };
+  const { canvas, sizedBox, draw } = useGlyphCanvas(glyphs, counts, rowHeight, () =>
+    paint(scrollYProgress.get()),
+  );
 
   // Writes to the rows directly, since each scroll step moves all of them.
   const paint = (progress: number) => {
@@ -183,22 +39,17 @@ export function Pipeline({ source }: { source: Token[][] }) {
     bars.current.forEach((bar, index) => {
       if (bar) bar.style.transform = `scaleX(${unit(at - index + 1)})`;
     });
-    if (board.current) {
-      board.current.style.height = rowsHeight(from, sweep, counts);
-      const morphing = sweep > 0 && sweep < 1;
-      board.current.style.setProperty('--morph-filter', morphing ? 'url(#text-morph)' : 'none');
-    }
+    if (board.current) board.current.style.height = rowsHeight(from, sweep, counts);
     rows.forEach((row, id) => {
-      const placed = Object.entries(placement(row, from, sweep, counts));
-      for (const layer of [elements.current[id], bands.current[id]]) {
-        for (const [name, value] of placed) layer?.style.setProperty(name, String(value));
+      const band = bands.current[id];
+      for (const [name, value] of Object.entries(bandStyle(row, from, sweep, counts))) {
+        band?.style.setProperty(name, String(value));
       }
     });
+    draw(from, sweep);
     setStage(Math.round(at));
   };
   useMotionValueEvent(scrollYProgress, 'change', paint);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: once, for a page opened part way down
-  useEffect(() => paint(scrollYProgress.get()), []);
 
   // Scrolls to where stage `index`'s rows rest.
   const pick = (index: number) => {
@@ -208,13 +59,6 @@ export function Pipeline({ source }: { source: Token[][] }) {
     const travel = box.offsetHeight - window.innerHeight;
     window.scrollTo({ top: top + (index / (stages.length - 1)) * travel, behavior: 'smooth' });
   };
-
-  const rowHeights = Object.fromEntries(
-    counts.map((count, index) => [
-      `--row-${index}`,
-      `min(1.5rem, (100cqh - ${windowChrome}) / ${count})`,
-    ]),
-  ) as CSSProperties;
 
   return (
     <section ref={section} className="relative" style={{ height: `${stages.length * 80}vh` }}>
@@ -281,13 +125,11 @@ export function Pipeline({ source }: { source: Token[][] }) {
               className="absolute -inset-8 -z-10 rounded-[3rem] bg-gradient-to-br from-brand/25 via-brand-2/5 to-brand-3/20 blur-3xl"
             />
             {/* A box of fixed height, whose size the rows read, and the window centered in it. */}
-            <div className="h-[max(12rem,min(24rem,calc(100svh-20rem)))] [container-type:size] sm:h-[max(12rem,min(27rem,calc(100svh-20rem)))] lg:h-[min(44rem,calc(100svh-7rem))] [@media(max-height:500px)]:h-[calc(100svh-5rem)]">
-              <div className="flex h-full flex-col justify-center" style={rowHeights}>
-                <svg aria-hidden="true" className="absolute size-0">
-                  <filter id="text-morph">
-                    <feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 7 -1.2" />
-                  </filter>
-                </svg>
+            <div
+              ref={sizedBox}
+              className="h-[max(12rem,min(24rem,calc(100svh-20rem)))] [container-type:size] sm:h-[max(12rem,min(27rem,calc(100svh-20rem)))] lg:h-[min(44rem,calc(100svh-7rem))] [@media(max-height:500px)]:h-[calc(100svh-5rem)]"
+            >
+              <div className="flex h-full flex-col justify-center" style={rowHeightsStyle(counts)}>
                 <Window title={stages[stage].file}>
                   {/* The rows of every stage, one over another, for sight only: the text beside them says it in words. */}
                   <div
@@ -313,27 +155,14 @@ export function Pipeline({ source }: { source: Token[][] }) {
                               ? 'before:bg-fd-foreground/[0.05] dark:before:bg-fd-foreground/[0.08]'
                               : 'before:bg-fd-foreground/[0.02] dark:before:bg-fd-foreground/[0.03]'),
                         )}
-                        style={rowStyle(row)}
+                        style={bandStyle(row, 0, 0, counts)}
                       />
                     ))}
-                    {/* The text apart from the bands, which that filter would turn solid. */}
-                    <div className="absolute inset-0 motion-safe:[filter:var(--morph-filter,none)]">
-                      {rows.map((row, id) => (
-                        <div
-                          // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list
-                          key={id}
-                          ref={(element) => {
-                            elements.current[id] = element;
-                          }}
-                          className="absolute inset-x-0 top-0 pl-3.5 whitespace-pre text-fd-card-foreground"
-                          style={rowStyle(row)}
-                        >
-                          <span className="block motion-safe:opacity-(--morph) motion-safe:[filter:blur(var(--blur,0))] motion-reduce:opacity-(--fade)">
-                            <CodeTokens tokens={row.tokens} />
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    {/* One canvas, not an element per character: a stage has thousands. */}
+                    <canvas
+                      ref={canvas}
+                      className="absolute inset-x-0 top-0 w-full font-mono text-fd-card-foreground"
+                    />
                   </div>
                 </Window>
               </div>
@@ -356,55 +185,4 @@ function Code({ text }: { text: string }) {
       part
     ),
   );
-}
-
-const types = 'i32|i64|i1|u32|bool|ptr|void';
-const registers = '[er](?:ax|cx|dx|di|si|sp|ip)';
-const controlFlow = 'call|ret|return|br|branch|goto|jle';
-const keywords =
-  'fn|if|define|entry|alloca|label|load|store|icmp|sgt|sext|to|unreachable|scope|end|mov|cmp|push|pop|cdqe|lea';
-const address = '^[\\da-f]{4} {2}';
-const instructionBytes = `${address}(?:[\\da-f]{2}(?: +|$))*`;
-
-// The parts of a line of compiler text that get their own color.
-const textPart = new RegExp(
-  `(${instructionBytes}|^[\\da-f]{16}|<[\\w.]+>:?|peeper_rt_\\w+|%[\\w.]+|@"[^"]*"|c?"[^"]*"|\\b[a-z]\\w*\\.\\d+\\b|\\bbb\\d+:?|\\b(?:${types})\\b|\\b${registers}\\b|\\b(?:${controlFlow})\\b|\\b(?:${keywords})\\b|\\b0x[\\da-f]+\\b|\\b\\d+\\b)`,
-);
-const isAddress = new RegExp(address);
-const isType = new RegExp(`^(?:${types})$`);
-const isControlFlow = new RegExp(`^(?:${controlFlow})$`);
-const isNumber = /^(?:0x[\da-f]+|\d+)$/;
-
-const plain = { light: 'inherit', dark: 'inherit' };
-const strong = { light: 'var(--color-fd-foreground)', dark: 'var(--color-fd-foreground)' };
-const faint = { light: '#9ca3af', dark: '#5b6470' };
-const nameColors = { light: '#0f766e', dark: '#3fb8af' };
-const numberColors = { light: '#2563eb', dark: '#79b8ff' };
-const typeColors = { light: '#b45309', dark: '#e8933d' };
-const symbolColors = { light: '#7c3aed', dark: '#d2a8ff' };
-const controlColors = { light: '#dc2626', dark: '#f87171' };
-
-/** The color of one colored part of a line of compiler text. */
-function partColors(part: string) {
-  if (/^[\da-f]{16}$/.test(part)) return plain;
-  if (part === '<main.max>:') return nameColors;
-  if (part.endsWith('>:')) return typeColors;
-  if (part.startsWith('<') || part.startsWith('peeper_rt_')) return symbolColors;
-  if (part.startsWith('@') || part.includes('"')) return symbolColors;
-  if (part.startsWith('%') || /\.\d+$/.test(part)) return nameColors;
-  if (isType.test(part)) return typeColors;
-  if (isNumber.test(part)) return numberColors;
-  if (isControlFlow.test(part)) return controlColors;
-  return strong;
-}
-
-/** `line` of compiler text, as tokens: values, names, types and keywords colored. */
-function colored(line: string): Token[] {
-  return line.split(textPart).flatMap((content, index) => {
-    if (index % 2 === 0) return [{ content, ...plain }];
-    if (!isAddress.test(content)) return [{ content, ...partColors(content) }];
-    // Alone on its row, the bytes are the point; beside an instruction they are faint.
-    const bytes = { content: content.slice(6), ...(content === line ? strong : faint) };
-    return [{ content: content.slice(0, 6), ...plain }, bytes];
-  });
 }
