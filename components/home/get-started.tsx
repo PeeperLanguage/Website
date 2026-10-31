@@ -2,29 +2,50 @@
 import { Check, Copy } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import { PillTabs } from './pill-tabs';
 import { SectionHeading } from './section-heading';
 import { Window } from './window';
 
-const steps = [
+const release = 'https://github.com/PeeperLanguage/compiler/releases/latest/download';
+
+const ways = [
   {
-    note: 'get the source',
-    command: 'git clone https://github.com/PeeperLanguage/compiler.git && cd compiler',
+    name: 'Install',
+    steps: [
+      { note: 'Linux and macOS', command: `curl -fsSL ${release}/install.sh | sh` },
+      { note: 'Windows PowerShell', command: `irm ${release}/install.ps1 | iex` },
+      { note: 'then, in a new terminal and an empty folder', command: 'peeper init hello' },
+      { note: 'run the new project', command: 'peeper run' },
+    ],
+    platforms: ['Linux x86-64', 'macOS ARM64', 'Windows x86-64'],
   },
-  { note: 'fetch the pinned LLVM toolchain', command: 'bash scripts/setup.sh' },
-  { note: 'build the compiler', command: 'bash scripts/build.sh' },
-  { note: 'run a program', command: 'build/bin/peeper run examples/01_functions.peep' },
+  {
+    name: 'Build from source',
+    steps: [
+      {
+        note: 'get the source',
+        command: 'git clone https://github.com/PeeperLanguage/compiler.git && cd compiler',
+      },
+      {
+        note: 'fetch the pinned LLVM toolchain; on Windows, pwsh scripts/setup.ps1',
+        command: 'bash scripts/setup.sh',
+      },
+      { note: 'build the compiler', command: 'bash scripts/build.sh' },
+      { note: 'run a program', command: 'build/bin/peeper run examples/01_functions.peep' },
+    ],
+    platforms: ['Linux x86-64', 'Linux ARM64', 'macOS ARM64', 'Windows x86-64'],
+  },
 ];
 
-const platforms = ['Linux x86-64', 'Linux ARM64', 'macOS ARM64', 'Windows x86-64'];
-
-/** The commands that build Peeper from source, each with a copy button. */
+/** The two ways to get Peeper, each as commands with a copy button. */
 export function GetStarted() {
+  const [active, setActive] = useState(0);
+  const way = ways[active];
   return (
     <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-      <SectionHeading eyebrow="Get started" title="Build it in four commands">
-        Peeper builds from source with its own LLVM toolchain, so nothing on your machine changes.
-        On Windows, run <code className="font-mono text-sm">pwsh scripts/setup.ps1</code> for the
-        second step.
+      <SectionHeading eyebrow="Get started" title="Install it, or build it yourself">
+        The installer puts a prebuilt compiler and its own LLVM toolchain in one folder, a download
+        of up to 190 MB. Building from source takes Rust and four commands.
       </SectionHeading>
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -33,15 +54,18 @@ export function GetStarted() {
         transition={{ duration: 0.6 }}
         className="mx-auto mt-12 max-w-3xl"
       >
-        <Window title="terminal">
-          <ol className="divide-y">
-            {steps.map((step) => (
-              <Step key={step.command} {...step} />
-            ))}
-          </ol>
-        </Window>
+        <PillTabs names={ways.map(({ name }) => name)} active={active} onPick={setActive} />
+        <div className="mt-8">
+          <Window title="terminal">
+            <ol className="divide-y">
+              {way.steps.map((step) => (
+                <Step key={step.command} {...step} />
+              ))}
+            </ol>
+          </Window>
+        </div>
         <ul className="mt-6 flex flex-wrap justify-center gap-2">
-          {platforms.map((platform) => (
+          {way.platforms.map((platform) => (
             <li
               key={platform}
               className="rounded-full border bg-fd-card px-3 py-1 font-mono text-xs text-fd-muted-foreground"
@@ -61,7 +85,7 @@ function Step({ note, command }: { note: string; command: string }) {
     <li className="group flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1 font-mono text-[13px]">
         <p className="text-xs text-fd-muted-foreground"># {note}</p>
-        <p className="mt-1 overflow-x-auto whitespace-nowrap">
+        <p className="mt-1 [overflow-wrap:anywhere]">
           <span className="select-none text-brand">$ </span>
           {command}
         </p>
