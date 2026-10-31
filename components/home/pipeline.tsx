@@ -1,93 +1,206 @@
 'use client';
-import { Repeat } from 'lucide-react';
-import { AnimatePresence, LayoutGroup, motion, useMotionValueEvent, useScroll } from 'motion/react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useMotionValueEvent, useScroll } from 'motion/react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { CodeTokens } from '@/components/code-card';
 import { cn } from '@/lib/cn';
 import type { Token } from '@/lib/highlight';
+import { binary, llvm, machine, mainLine, mir, run, type StoryRow, thir } from './story';
+import { Window } from './window';
 
-// The story follows one line of the program in programs.ts, `total = total + i`,
-// through what the compiler wrote for it: its THIR, MIR and LLVM dumps, the
-// machine code of its debug build on x86-64 Linux, and what it printed.
 const stages = [
   {
     tab: 'Source',
     file: 'src/main.peep',
-    title: 'You write a loop.',
-    text: 'Follow one line, `total = total + i`, from the source file to the processor. Every step shows what the compiler really wrote for this program.',
+    title: 'You write a program.',
+    text: 'Scroll, and this whole program turns into what the processor runs. Each band is one source line, and the bar beside it says which function it is in. Every step is what the compiler really wrote.',
+    rows: [],
   },
   {
     tab: 'THIR',
     file: 'main.thir',
     title: 'Every name gets an identity.',
-    text: 'The checker resolves each name and type. `total` becomes the local `total.1`, `i` becomes `i.2`, and the literal `0` is now an `i32`.',
+    text: 'The checker resolves each name and type. `a` becomes the local `a.0`, `b` becomes `b.1`, and each literal is now an `i32`.',
+    rows: thir,
   },
   {
     tab: 'MIR',
     file: 'main.mir',
-    title: 'The loop becomes a graph.',
-    text: 'Lowering turns the body into blocks and jumps. On this graph the compiler checks that every path returns, nothing is used after it moves, and no borrow overlaps a `&mut`.',
+    title: 'The code becomes a graph.',
+    text: 'Lowering turns each function into blocks and jumps. On this graph the compiler checks that every path returns, nothing is used after it moves, and no borrow overlaps a `&mut`.',
+    rows: mir,
   },
   {
     tab: 'LLVM IR',
     file: 'main.ll',
     title: 'The graph becomes LLVM IR.',
     text: 'Each block becomes LLVM text, written on worker threads while the next module is still being checked.',
+    rows: llvm,
   },
   {
     tab: 'x86-64',
-    file: 'story',
+    file: 'objdump -d main',
     title: 'LLVM IR becomes machine code.',
-    text: 'Clang compiles the modules, one per core, and links them with Peeper’s runtime. The add is now one instruction, four bytes long.',
+    text: 'Clang compiles the modules, one per core. Each instruction is now a few bytes, shown beside what they mean.',
+    rows: machine,
+  },
+  {
+    tab: 'Binary',
+    file: 'main',
+    title: 'Only the bytes are left.',
+    text: 'This is all the processor sees of `max` and `main`. The linker adds Peeper’s runtime, and a `-release` build of this program comes to about 8 KB.',
+    rows: binary,
   },
   {
     tab: 'Run',
     file: 'terminal',
     title: 'And it runs.',
-    text: '`peeper run` builds the program, then runs it. The line runs five times, and the program prints the sum.',
+    text: '`peeper run` builds the program, then runs it. `max(2, 3)` is `3`.',
+    rows: run,
   },
 ];
 
-// Scroll steps the last stage keeps beyond its own, so its run plays out
-// before the section scrolls away.
-const lastHold = 1;
-const steps = stages.length + lastHold;
+// Parts of a stage's scroll span: the share at each end where its rows stay
+// put to be read, and the share of the rest by which the last row starts after
+// the first, so the change sweeps down the code.
+const hold = 0.12;
+const sweepDelay = 0.5;
+// What the window takes of the height the board may grow to: title bar and margins.
+const windowChrome = '4.5rem';
 
-/** One line of a program followed through the compiler, a stage per scroll step. */
+const unit = (value: number) => Math.min(Math.max(value, 0), 1);
+
+/** A row of a stage, with the rows it comes from and goes to in the stages beside it. */
+type PlacedRow = {
+  stage: number;
+  index: number;
+  line: number;
+  tokens: Token[];
+  shaded: boolean;
+  previous: number;
+  next: number;
+};
+
+/** Which of `to`'s rows the row at `index` of `from` turns into: one of its source line's. */
+function counterpart(from: { line: number }[], index: number, to: { line: number }[]) {
+  const line = from[index].line;
+  const own = to.flatMap((row, at) => (row.line === line ? [at] : []));
+  if (line === 0 || own.length === 0) {
+    return Math.min(Math.round((index / from.length) * to.length), to.length - 1);
+  }
+  const siblings = from.flatMap((row, at) => (row.line === line ? [at] : []));
+  return own[Math.floor((siblings.indexOf(index) / siblings.length) * own.length)];
+}
+
+/** Whether each row takes the darker band: they swap with each source line, from the light one. */
+function zebra(rows: { line: number }[]) {
+  let shaded = true;
+  return rows.map(({ line }, index) => {
+    if (line === 0) shaded = true;
+    else if (line !== rows[index - 1]?.line) shaded = !shaded;
+    return shaded;
+  });
+}
+
+/** Where `row` is, and how much of it shows, `sweep` of the way from stage `from` to the next. */
+function placement(
+  { stage, index, previous, next }: PlacedRow,
+  from: number,
+  sweep: number,
+  counts: number[],
+) {
+  const leaving = stage === from;
+  if (!leaving && stage !== from + 1) return { transform: 'none', opacity: 0 };
+  const turn = unit((sweep - (index / counts[stage]) * sweepDelay) / (1 - sweepDelay));
+  const smooth = turn * turn * (3 - 2 * turn);
+  const away = leaving ? smooth : 1 - smooth;
+  const otherStage = leaving ? stage + 1 : stage - 1;
+  const here = `${index} * var(--row-${stage})`;
+  const there = `${leaving ? next : previous} * var(--row-${otherStage})`;
+  return {
+    transform: `translateY(calc(${1 - away} * ${here} + ${away} * ${there}))`,
+    opacity: leaving ? unit(1 - 2 * turn) : unit(2 * turn - 1),
+  };
+}
+
+/** The height of the rows of stage `from`, or of the next one, `sweep` of the way between them. */
+function rowsHeight(from: number, sweep: number, counts: number[]) {
+  const here = `${1 - sweep} * ${counts[from]} * var(--row-${from})`;
+  return `calc(${here} + ${sweep} * ${counts[from + 1]} * var(--row-${from + 1}))`;
+}
+
+/** A program turning into machine code and running, moved along by the scroll. */
 export function Pipeline({ source }: { source: Token[][] }) {
-  const ref = useRef<HTMLElement>(null);
+  const section = useRef<HTMLElement>(null);
+  const bars = useRef<(HTMLSpanElement | null)[]>([]);
+  const elements = useRef<(HTMLDivElement | null)[]>([]);
+  const board = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState(0);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
-  useMotionValueEvent(scrollYProgress, 'change', (progress) =>
-    setStage(Math.min(Math.floor(progress * steps), stages.length - 1)),
-  );
+  const { scrollYProgress } = useScroll({ target: section, offset: ['start start', 'end end'] });
 
-  // Scrolls to the middle of `index`'s step.
+  const { rows, counts } = useMemo(() => {
+    const byStage = stages.map(({ rows }, stage) =>
+      stage === 0
+        ? source.map((tokens, index) => ({ line: tokens.length > 0 ? index + 1 : 0, tokens }))
+        : rows.map(([line, text]: StoryRow) => ({ line, tokens: colored(text) })),
+    );
+    const rows = byStage.flatMap((rowsOfStage, stage) => {
+      const shades = zebra(rowsOfStage);
+      return rowsOfStage.map((row, index) => ({
+        ...row,
+        stage,
+        index,
+        shaded: shades[index],
+        previous: counterpart(rowsOfStage, index, byStage[Math.max(stage - 1, 0)]),
+        next: counterpart(rowsOfStage, index, byStage[Math.min(stage + 1, stages.length - 1)]),
+      }));
+    });
+    return { rows, counts: byStage.map((rowsOfStage) => rowsOfStage.length) };
+  }, [source]);
+
+  // Writes to the rows directly, since each scroll step moves all of them.
+  const paint = (progress: number) => {
+    const at = progress * (stages.length - 1);
+    const from = Math.min(Math.floor(at), stages.length - 2);
+    const sweep = unit((at - from - hold) / (1 - 2 * hold));
+    bars.current.forEach((bar, index) => {
+      if (bar) bar.style.transform = `scaleX(${unit(at - index + 1)})`;
+    });
+    if (board.current) board.current.style.height = rowsHeight(from, sweep, counts);
+    rows.forEach((row, id) => {
+      const element = elements.current[id];
+      if (element) Object.assign(element.style, placement(row, from, sweep, counts));
+    });
+    setStage(Math.round(at));
+  };
+  useMotionValueEvent(scrollYProgress, 'change', paint);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, for a page opened part way down
+  useEffect(() => paint(scrollYProgress.get()), []);
+
+  // Scrolls to where stage `index`'s rows rest.
   const pick = (index: number) => {
-    const section = ref.current;
-    if (!section) return;
-    const top = section.getBoundingClientRect().top + window.scrollY;
-    const travel = section.offsetHeight - window.innerHeight;
-    window.scrollTo({ top: top + ((index + 0.5) / steps) * travel, behavior: 'smooth' });
+    const box = section.current;
+    if (!box) return;
+    const top = box.getBoundingClientRect().top + window.scrollY;
+    const travel = box.offsetHeight - window.innerHeight;
+    window.scrollTo({ top: top + (index / (stages.length - 1)) * travel, behavior: 'smooth' });
   };
 
-  const views = [
-    <SourceView key="source" lines={source} />,
-    <ThirView key="thir" />,
-    <MirView key="mir" />,
-    <LlvmView key="llvm" />,
-    <MachineView key="machine" />,
-    <RunView key="run" />,
-  ];
+  const rowHeights = Object.fromEntries(
+    counts.map((count, index) => [
+      `--row-${index}`,
+      `min(1.5rem, (100cqh - ${windowChrome}) / ${count})`,
+    ]),
+  ) as CSSProperties;
 
   return (
-    <section ref={ref} className="relative" style={{ height: `${steps * 80}vh` }}>
-      <div className="sticky top-14 flex h-[calc(100svh-3.5rem)] items-center overflow-hidden">
-        <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-14">
+    <section ref={section} className="relative" style={{ height: `${stages.length * 80}vh` }}>
+      <div className="sticky top-14 flex h-[calc(100svh-3.5rem)] items-center overflow-x-clip">
+        <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-14 [@media(max-height:500px)]:grid-cols-[0.85fr_1.15fr] [@media(max-height:500px)]:items-center">
           <div className="min-w-0">
             <p className="font-mono text-xs font-medium tracking-widest text-brand uppercase">
               How it compiles
             </p>
-            <ol className="mt-4 grid grid-cols-6 gap-1.5">
+            <ol className="mt-4 grid grid-cols-7 gap-1.5">
               {stages.map((step, index) => (
                 <li key={step.tab}>
                   <button
@@ -96,11 +209,12 @@ export function Pipeline({ source }: { source: Token[][] }) {
                     className="group w-full text-left"
                   >
                     <span className="block h-1 overflow-hidden rounded-full bg-fd-border">
-                      <motion.span
-                        className="block h-full rounded-full bg-gradient-to-r from-brand to-brand-2"
-                        initial={false}
-                        animate={{ width: index <= stage ? '100%' : '0%' }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                      <span
+                        ref={(bar) => {
+                          bars.current[index] = bar;
+                        }}
+                        className="block h-full origin-left rounded-full bg-gradient-to-r from-brand to-brand-2"
+                        style={{ transform: `scaleX(${index === 0 ? 1 : 0})` }}
                       />
                     </span>
                     <span
@@ -121,10 +235,10 @@ export function Pipeline({ source }: { source: Token[][] }) {
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={stage}
-                  initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: -10, filter: 'blur(6px)' }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
                 >
                   <h2 className="text-2xl font-semibold tracking-tight text-balance sm:text-4xl">
                     {stages[stage].title}
@@ -142,346 +256,52 @@ export function Pipeline({ source }: { source: Token[][] }) {
               aria-hidden="true"
               className="absolute -inset-8 -z-10 rounded-[3rem] bg-gradient-to-br from-brand/25 via-brand-2/5 to-brand-3/20 blur-3xl"
             />
-            <div className="overflow-hidden rounded-2xl border border-[#20252d] bg-[#0b0d10] font-mono text-[#adb5c1] shadow-2xl shadow-black/30">
-              <div className="flex items-center gap-3 border-b border-[#20252d] px-4 py-2.5 text-[10.5px] tracking-[0.14em] uppercase">
-                <span className="text-[#3fb8af]">
-                  {String(stage + 1).padStart(2, '0')} · {stages[stage].tab}
-                </span>
-                <span className="ml-auto truncate text-[#566170] normal-case tracking-normal">
-                  {stages[stage].file}
-                </span>
-              </div>
-              <div className="story-grid relative h-[23rem] text-[11px] leading-[1.35rem] sm:h-[26rem] sm:text-[12.5px] sm:leading-6">
-                <LayoutGroup>
-                  <AnimatePresence initial={false}>
-                    <motion.div
-                      key={stage}
-                      className="absolute inset-0 overflow-x-auto p-3 sm:p-6"
-                      initial="hidden"
-                      animate="shown"
-                      exit="gone"
-                      variants={{
-                        shown: { transition: { staggerChildren: 0.035, delayChildren: 0.12 } },
-                      }}
-                    >
-                      {views[stage]}
-                    </motion.div>
-                  </AnimatePresence>
-                </LayoutGroup>
+            {/* A box of fixed height, whose size the rows read, and the window centered in it. */}
+            <div className="h-[max(12rem,min(24rem,calc(100svh-20rem)))] [container-type:size] sm:h-[max(12rem,min(27rem,calc(100svh-20rem)))] lg:h-[min(44rem,calc(100svh-7rem))] [@media(max-height:500px)]:h-[calc(100svh-5rem)]">
+              <div className="flex h-full flex-col justify-center" style={rowHeights}>
+                <Window title={stages[stage].file}>
+                  {/* The rows of every stage, one over another, for sight only: the text beside them says it in words. */}
+                  <div
+                    ref={board}
+                    aria-hidden="true"
+                    className="relative m-4 overflow-hidden font-mono"
+                    style={{ height: rowsHeight(0, 0, counts) }}
+                  >
+                    {rows.map((row, id) => (
+                      <div
+                        // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list
+                        key={id}
+                        ref={(element) => {
+                          elements.current[id] = element;
+                        }}
+                        className={cn(
+                          'absolute inset-x-0 top-0 overflow-hidden border-l-2 pl-3 whitespace-pre text-fd-muted-foreground',
+                          row.line === 0 && 'border-transparent',
+                          row.line !== 0 &&
+                            (row.line < mainLine ? 'border-brand' : 'border-brand-3'),
+                          row.line !== 0 &&
+                            (row.shaded
+                              ? 'bg-fd-foreground/[0.05] dark:bg-fd-foreground/[0.08]'
+                              : 'bg-fd-foreground/[0.02] dark:bg-fd-foreground/[0.03]'),
+                        )}
+                        style={{
+                          ...placement(row, 0, 0, counts),
+                          height: `var(--row-${row.stage})`,
+                          lineHeight: `var(--row-${row.stage})`,
+                          fontSize: `min(13px, 0.74 * var(--row-${row.stage}))`,
+                        }}
+                      >
+                        <CodeTokens tokens={row.tokens} />
+                      </div>
+                    ))}
+                  </div>
+                </Window>
               </div>
             </div>
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-// How a part of a view comes in and goes out, in step with its siblings.
-const fade = {
-  hidden: { opacity: 0, y: 8, filter: 'blur(6px)' },
-  shown: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.35 } },
-  gone: { opacity: 0, filter: 'blur(6px)', transition: { duration: 0.2 } },
-};
-
-/** A part of a view that fades in after the ones before it. */
-function Fade({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <motion.div variants={fade} className={className}>
-      {children}
-    </motion.div>
-  );
-}
-
-/**
- * The followed line. Each view has one, under one layout id, so going to the
- * next view moves it from where it was to where it is now.
- */
-function Thread({ children }: { children: ReactNode }) {
-  return (
-    <motion.div
-      layoutId="thread"
-      transition={{ type: 'spring', stiffness: 160, damping: 24 }}
-      className="relative -mx-2 rounded-md bg-[#e8933d]/12 px-2 whitespace-pre text-[#e8eaed] ring-1 ring-[#e8933d]/45"
-    >
-      <motion.div layout="position">{children}</motion.div>
-    </motion.div>
-  );
-}
-
-/** `lines` of compiler text, the one at `thread` being the followed line. */
-function TextView({ lines, thread }: { lines: string[]; thread: number }) {
-  return lines.map((line, index) =>
-    index === thread ? (
-      <Thread key={line}>{colored(line)}</Thread>
-    ) : (
-      // biome-ignore lint/suspicious/noArrayIndexKey: fixed text, where `…` lines repeat
-      <Fade key={index} className="min-h-[1lh] whitespace-pre">
-        {colored(line)}
-      </Fade>
-    ),
-  );
-}
-
-function SourceView({ lines }: { lines: Token[][] }) {
-  return lines.map((line, index) => {
-    const text = (
-      <>
-        <span className="mr-4 inline-block w-4 text-right text-[#566170] select-none">
-          {index + 1}
-        </span>
-        {line.map((token, at) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: a fixed program
-          <span key={at} style={{ color: token.dark }}>
-            {token.content}
-          </span>
-        ))}
-      </>
-    );
-    return index === 3 ? (
-      <Thread key="thread">{text}</Thread>
-    ) : (
-      // biome-ignore lint/suspicious/noArrayIndexKey: a fixed program
-      <Fade key={index} className="min-h-[1lh] whitespace-pre">
-        {text}
-      </Fade>
-    );
-  });
-}
-
-const thir = [
-  'fn sum:',
-  '    let mut total.1 = 0:i32',
-  '    for i.2 in 0:i32..n.0 by 1:u32 {',
-  '        total.1 = (total.1 Add i.2)',
-  '    }',
-  '    return total.1',
-  'fn main:',
-  '    println(c"sum:", call sum(5:i32):i32)',
-];
-const renames = [
-  ['total', 'total.1'],
-  ['i', 'i.2'],
-  ['n', 'n.0'],
-];
-
-function ThirView() {
-  return (
-    <>
-      <TextView lines={thir} thread={3} />
-      <Fade className="mt-6 flex flex-wrap gap-2 text-[10.5px]">
-        {renames.map(([name, local]) => (
-          <span key={name} className="rounded-md border border-[#343b46] px-2 py-0.5">
-            {name} <span className="text-[#566170]">→</span>{' '}
-            <span className="text-[#3fb8af]">{local}</span>
-          </span>
-        ))}
-      </Fade>
-    </>
-  );
-}
-
-/** A MIR block: its name, what it is, and its lines. */
-function Block({ name, kind, children }: { name: string; kind: string; children: ReactNode }) {
-  return (
-    <Fade className="rounded-lg border border-[#343b46] bg-[#12151a] px-3 py-2">
-      <div className="mb-1 text-[9.5px] tracking-[0.12em] text-[#8790a0] uppercase">
-        <span className="text-[#e8eaed]">{name}</span> · {kind}
-      </div>
-      {children}
-    </Fade>
-  );
-}
-
-const checks = ['every path returns', 'no use after a move', 'no borrow overlaps'];
-
-function MirView() {
-  return (
-    // smaller on phones, so both blocks of the second row fit side by side
-    <div className="flex flex-col gap-2.5 max-sm:text-[9.5px] max-sm:leading-[1.1rem]">
-      <div className="mx-auto">
-        <Block name="bb4" kind="loop head">
-          <div className="whitespace-pre">{colored('branch %13 (0..n) bb5 bb6')}</div>
-        </Block>
-      </div>
-      <Fade>
-        <svg
-          viewBox="0 0 100 10"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-          className="h-4 w-full"
-        >
-          <path
-            d="M50 0 L28 10 M50 0 L78 10"
-            fill="none"
-            stroke="#566170"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-      </Fade>
-      <div className="grid grid-cols-[1.35fr_1fr] gap-2 sm:gap-2.5">
-        <Block name="bb5" kind="body">
-          {['%18 = load total.1: i32', '%19 = load i.2: i32'].map((line) => (
-            <div key={line} className="whitespace-pre">
-              {colored(line)}
-            </div>
-          ))}
-          <Thread>{colored('%20 = Add %18, %19: i32')}</Thread>
-          {['store total.1, %20', 'goto bb7'].map((line) => (
-            <div key={line} className="whitespace-pre">
-              {colored(line)}
-            </div>
-          ))}
-        </Block>
-        <Block name="bb6" kind="exit">
-          {['%23 = load total.1: i32', 'return %23'].map((line) => (
-            <div key={line} className="whitespace-pre">
-              {colored(line)}
-            </div>
-          ))}
-        </Block>
-      </div>
-      <Fade className="flex items-center gap-2 text-[10.5px] text-[#e8933d]">
-        <Repeat className="size-3.5" />
-        <span className="whitespace-pre">
-          bb7: goto bb4 <span className="text-[#8790a0]">· the loop goes round</span>
-        </span>
-      </Fade>
-      <Fade className="mt-2 flex flex-wrap gap-1.5 text-[10.5px]">
-        {checks.map((check) => (
-          <span
-            key={check}
-            className="rounded-md border border-[#3fb8af]/40 px-2 py-0.5 text-[#3fb8af]"
-          >
-            ✓ {check}
-          </span>
-        ))}
-      </Fade>
-    </div>
-  );
-}
-
-const llvm = [
-  'define i32 @"story:main.sum"(i32 %arg0) {',
-  '  …',
-  'bb5:',
-  '  …',
-  '  %i18 = load i32, ptr %v1',
-  '  %i19 = load i32, ptr %v2',
-  '  %i20 = add i32 %i18, %i19',
-  '  store i32 %i20, ptr %v1',
-  '  br label %bb7',
-  '  …',
-  '}',
-];
-
-function LlvmView() {
-  return <TextView lines={llvm} thread={6} />;
-}
-
-// `sum`'s body in the debug build, as objdump shows it: total lives at
-// [rsp-0x8] and i at [rsp-0xc].
-const machine = [
-  { at: '1d90', bytes: '8b 44 24 f8', code: 'mov eax, DWORD PTR [rsp-0x8]', note: 'total' },
-  { at: '1d94', bytes: '03 44 24 f4', code: 'add eax, DWORD PTR [rsp-0xc]', note: '+ i' },
-  { at: '1d98', bytes: '89 44 24 f8', code: 'mov DWORD PTR [rsp-0x8], eax', note: 'total =' },
-  { at: '1d9c', bytes: 'eb 05', code: 'jmp 1da3', note: 'on to bb7' },
-];
-
-function MachineView() {
-  return (
-    <>
-      <Fade className="mb-3 text-[9.5px] tracking-[0.12em] text-[#8790a0] uppercase">
-        story:main.sum · x86-64 · debug build
-      </Fade>
-      {machine.map((row) => {
-        const text = (
-          <>
-            <span className="text-[#566170]">{row.at} </span>
-            <span className="hidden text-[#3fb8af] sm:inline">{row.bytes.padEnd(13)}</span>
-            {colored(row.code.padEnd(31))}
-            <span className="text-[#566170]">; {row.note}</span>
-          </>
-        );
-        return row.at === '1d94' ? (
-          <Thread key={row.at}>{text}</Thread>
-        ) : (
-          <Fade key={row.at} className="whitespace-pre">
-            {text}
-          </Fade>
-        );
-      })}
-      <Fade className="mt-6 space-y-1 border-t border-[#20252d] pt-4 text-[10.5px] text-[#8790a0]">
-        <div>
-          <span className="text-[#e8eaed]">./story</span> · ELF 64-bit · about 13 KB
-        </div>
-        <div>runtime · peeper_rt_v1_print_text, peeper_rt_v1_print_int</div>
-      </Fade>
-    </>
-  );
-}
-
-// Each turn of the loop: `i`, then `total` before and after it.
-const turns = [0, 1, 2, 3, 4].map((i) => ({
-  i,
-  before: (i * (i - 1)) / 2,
-  after: (i * (i + 1)) / 2,
-}));
-// The trace's columns, as wide as its widest text.
-const column = (text: string | number, width: number) => String(text).padEnd(width);
-
-function RunView() {
-  const [ran, setRan] = useState(0);
-  useEffect(() => {
-    if (ran === turns.length) return;
-    const timer = setTimeout(() => setRan(ran + 1), ran === 0 ? 500 : 280);
-    return () => clearTimeout(timer);
-  }, [ran]);
-  const done = ran === turns.length;
-  return (
-    <>
-      <Fade className="whitespace-pre">
-        <span className="text-[#3fb8af]">$</span>{' '}
-        <span className="text-[#e8eaed]">peeper run .</span>
-      </Fade>
-      <div className="mt-4">
-        <Thread>
-          {colored('total = total + i')}
-          <span className="text-[#566170]">{'  // once a turn'}</span>
-        </Thread>
-      </div>
-      <Fade className="mt-3 whitespace-pre">
-        <div className="text-[#566170]">
-          {column('i', 6)}
-          {column('total + i', 14)}total
-        </div>
-        {turns.map(({ i, before, after }, turn) => (
-          <div
-            key={i}
-            className={cn(
-              'transition-opacity duration-300',
-              turn < ran ? 'opacity-100' : 'opacity-25',
-            )}
-          >
-            <span className="text-[#3fb8af]">{column(i, 6)}</span>
-            {column(`${before} + ${i}`, 14)}
-            <span className={turn === ran - 1 ? 'text-[#e8933d]' : 'text-[#e8eaed]'}>{after}</span>
-          </div>
-        ))}
-      </Fade>
-      <motion.div
-        className="mt-5 whitespace-pre"
-        initial={{ opacity: 0, y: 6 }}
-        animate={done ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
-        transition={{ duration: 0.35 }}
-      >
-        <div className="text-[#e8eaed]">sum: 10</div>
-        <div>
-          <span className="text-[#3fb8af]">$</span>{' '}
-          <span className="inline-block h-[1em] w-[0.6em] translate-y-[0.15em] animate-pulse bg-[#e8eaed]/70" />
-        </div>
-      </motion.div>
-    </>
   );
 }
 
@@ -498,23 +318,53 @@ function Code({ text }: { text: string }) {
   );
 }
 
-// The parts of a line of compiler text that get their own color.
-const textPart =
-  /(%[\w.]+|@"[^"]*"|c?"[^"]*"|\b[a-z]\w*\.\d+\b|\bbb\d+:?|\b(?:i32|u32|i1|bool|ptr|DWORD|PTR)\b|\b(?:fn|let|mut|for|in|by|return|call|define|ret|br|label|load|store|add|Add|branch|goto|mov|jmp)\b|\b0x[\da-f]+\b|\b\d+\b)/;
+const types = 'i32|i64|i1|u32|bool|ptr|void';
+const registers = '[er](?:ax|cx|dx|di|si|sp|ip)';
+const controlFlow = 'call|ret|return|br|branch|goto|jle';
+const keywords =
+  'fn|if|define|entry|alloca|label|load|store|icmp|sgt|sext|to|unreachable|scope|end|mov|cmp|push|pop|cdqe|lea';
+const address = '^[\\da-f]{4} {2}';
+const instructionBytes = `${address}(?:[\\da-f]{2}(?: +|$))*`;
 
-/** `line` of compiler text, with values, names, types and keywords colored. */
-function colored(line: string): ReactNode[] {
-  return line.split(textPart).map((part, index) => {
-    if (index % 2 === 0) return part;
-    let color = '#e8eaed'; // keywords and block names
-    if (part.startsWith('%') || /\.\d+$/.test(part)) color = '#3fb8af';
-    else if (part.startsWith('@') || part.includes('"')) color = '#9ecbff';
-    else if (/^(?:i32|u32|i1|bool|ptr|DWORD|PTR|0x[\da-f]+|\d+)$/.test(part)) color = '#e8933d';
-    return (
-      // biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed line
-      <span key={index} style={{ color }}>
-        {part}
-      </span>
-    );
+// The parts of a line of compiler text that get their own color.
+const textPart = new RegExp(
+  `(${instructionBytes}|^[\\da-f]{16}|<[\\w.]+>:?|peeper_rt_\\w+|%[\\w.]+|@"[^"]*"|c?"[^"]*"|\\b[a-z]\\w*\\.\\d+\\b|\\bbb\\d+:?|\\b(?:${types})\\b|\\b${registers}\\b|\\b(?:${controlFlow})\\b|\\b(?:${keywords})\\b|\\b0x[\\da-f]+\\b|\\b\\d+\\b)`,
+);
+const isAddress = new RegExp(address);
+const isType = new RegExp(`^(?:${types})$`);
+const isControlFlow = new RegExp(`^(?:${controlFlow})$`);
+const isNumber = /^(?:0x[\da-f]+|\d+)$/;
+
+const plain = { light: 'inherit', dark: 'inherit' };
+const strong = { light: 'var(--color-fd-foreground)', dark: 'var(--color-fd-foreground)' };
+const faint = { light: '#9ca3af', dark: '#5b6470' };
+const nameColors = { light: '#0f766e', dark: '#3fb8af' };
+const numberColors = { light: '#2563eb', dark: '#79b8ff' };
+const typeColors = { light: '#b45309', dark: '#e8933d' };
+const symbolColors = { light: '#7c3aed', dark: '#d2a8ff' };
+const controlColors = { light: '#dc2626', dark: '#f87171' };
+
+/** The color of one colored part of a line of compiler text. */
+function partColors(part: string) {
+  if (/^[\da-f]{16}$/.test(part)) return plain;
+  if (part === '<main.max>:') return nameColors;
+  if (part.endsWith('>:')) return typeColors;
+  if (part.startsWith('<') || part.startsWith('peeper_rt_')) return symbolColors;
+  if (part.startsWith('@') || part.includes('"')) return symbolColors;
+  if (part.startsWith('%') || /\.\d+$/.test(part)) return nameColors;
+  if (isType.test(part)) return typeColors;
+  if (isNumber.test(part)) return numberColors;
+  if (isControlFlow.test(part)) return controlColors;
+  return strong;
+}
+
+/** `line` of compiler text, as tokens: values, names, types and keywords colored. */
+function colored(line: string): Token[] {
+  return line.split(textPart).flatMap((content, index) => {
+    if (index % 2 === 0) return [{ content, ...plain }];
+    if (!isAddress.test(content)) return [{ content, ...partColors(content) }];
+    // Alone on its row, the bytes are the point; beside an instruction they are faint.
+    const bytes = { content: content.slice(6), ...(content === line ? strong : faint) };
+    return [{ content: content.slice(0, 6), ...plain }, bytes];
   });
 }

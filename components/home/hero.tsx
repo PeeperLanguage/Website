@@ -108,9 +108,7 @@ export function Hero({ lines }: { lines: Token[][] }) {
         >
           <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand/25 via-brand-2/10 to-brand-3/25 blur-3xl" />
           <PeekingMascot delay={1.1} className="right-8 w-24 sm:w-28" />
-          <Window title="src/main.peep">
-            <CodeLines lines={lines} delay={codeStart} step={step} />
-          </Window>
+          <CodeLines title="src/main.peep" lines={lines} delay={codeStart} step={step} />
           <Window title="terminal" className="mt-4 sm:mr-10 sm:-ml-6">
             <div className="p-4 font-mono text-[13px] leading-6">
               <div>
@@ -157,7 +155,10 @@ function useTyped(text: string, startMs: number, reduce: boolean | null) {
 /** The hero's backdrop: a faded grid and two slow, drifting glows. */
 function Backdrop() {
   return (
-    <div aria-hidden="true" className="absolute inset-0 -z-10">
+    <div
+      aria-hidden="true"
+      className="absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
+    >
       <div className="hero-grid absolute inset-0 opacity-60" />
       <motion.div
         className="absolute -top-40 left-[10%] size-[32rem] rounded-full bg-brand/20 blur-[120px]"

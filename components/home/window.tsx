@@ -14,7 +14,7 @@ export function Window({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-xl border bg-fd-card/85 shadow-2xl shadow-black/10 backdrop-blur-md dark:shadow-black/50',
+        'overflow-hidden rounded-xl border bg-fd-card shadow-2xl shadow-black/10 dark:shadow-black/50',
         className,
       )}
     >

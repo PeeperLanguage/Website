@@ -15,6 +15,7 @@ export function baseOptions(): BaseLayoutProps {
     links: [
       { text: 'Docs', url: '/docs', active: 'nested-url' },
       { text: 'Tour', url: '/docs/tour' },
+      { text: 'Playground', url: '/playground' },
     ],
     githubUrl: compilerUrl,
   };

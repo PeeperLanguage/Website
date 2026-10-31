@@ -29,10 +29,8 @@ export const tourPrograms = [
 ];
 
 /**
- * The program the compile story follows. Its stages show what
- * `peeper check -dump` wrote for it, what objdump shows of its debug build on
- * Linux x86-64 (about 13 KB, as its size moves with the build's paths), and
- * what `peeper run` printed: `sum: 10`.
+ * The program the compile story follows. story.ts holds what the compiler
+ * wrote for it, and `peeper run` printed `max: 3`.
  */
 export const storyProgram =
-  'fn sum(n: i32) -> i32 {\n    let mut total = 0;\n    for i in 0..n {\n        total = total + i;\n    }\n    return total;\n}\n\nfn main() {\n    println("sum:", sum(5));\n}\n';
+  'fn max(a: i32, b: i32) -> i32 {\n    if a > b {\n        return a;\n    }\n    return b;\n}\n\nfn main() {\n    println("max:", max(2, 3));\n}\n';

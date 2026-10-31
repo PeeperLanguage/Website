@@ -31,6 +31,45 @@ html > body[data-scroll-locked] {
 }
 /* biome-ignore-end lint/complexity/noImportantStyles: see above */
 
+/* Tailwind leaves buttons with the plain arrow. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  [role="tab"],
+  [role="switch"],
+  summary,
+  select {
+    cursor: pointer;
+  }
+}
+
+/* One scrollbar everywhere: a thin pill on no track, with no arrows. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--color-fd-border) padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-fd-muted-foreground) padding-box;
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-fd-border) transparent;
+  }
+}
+
 /* A highlighted token's colors, from lib/highlight.ts. */
 .token {
   color: var(--token-light);
@@ -53,12 +92,4 @@ html > body[data-scroll-locked] {
     linear-gradient(to bottom, var(--color-fd-border) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 75%);
-}
-
-/* The compile story's board: a faint grid, like a schematic. */
-.story-grid {
-  background-image:
-    linear-gradient(to right, #161a20 1px, transparent 1px),
-    linear-gradient(to bottom, #161a20 1px, transparent 1px);
-  background-size: 24px 24px;
 }

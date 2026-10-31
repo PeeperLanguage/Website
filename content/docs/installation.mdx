@@ -1,12 +1,47 @@
 ---
-title: Build from source
-description: Set up the toolchain, build the compiler and run a program.
+title: Installation
+description: Install a prebuilt compiler, or build it from source.
 ---
 
-Peeper is built from source for now. The build puts the compiler, its bundled
-library, its runtime and its own LLVM toolchain in the `build/` folder.
+## Install a release
 
-## Requirements
+Linux and macOS:
+
+```bash
+curl -fsSL https://github.com/PeeperLanguage/compiler/releases/latest/download/install.sh | sh
+```
+
+Windows PowerShell:
+
+```bash
+irm https://github.com/PeeperLanguage/compiler/releases/latest/download/install.ps1 | iex
+```
+
+A release holds one archive each for Linux x86-64, macOS ARM64 and Windows
+x86-64, with the compiler, its libraries, its runtime and its LLVM toolchain.
+The script downloads this machine's archive, up to 190 MB, and checks it against
+the release's `SHA256SUMS`. It then replaces the installation, `~/.peeper` (on
+Windows `%LOCALAPPDATA%\Peeper`), only once the new one is unpacked.
+
+The script adds the installation's `bin` folder to your `PATH` once. Open a new
+terminal to use `peeper`, because a piped script cannot change the shell that
+ran it. Then, in an empty folder:
+
+```bash
+peeper init hello
+peeper run
+```
+
+On macOS, linking programs needs Xcode's command line tools
+(`xcode-select --install`). Linux ARM64 has no release yet, so build it from
+source.
+
+## Build from source
+
+The build puts the compiler, its bundled library, its runtime and its own LLVM
+toolchain in the `build/` folder.
+
+### Requirements
 
 - A Rust toolchain (`cargo`, with `rustfmt` and `clippy`).
 - `curl`, `tar` and `jq` for `scripts/setup.sh`; on Windows, PowerShell for
@@ -15,8 +50,6 @@ library, its runtime and its own LLVM toolchain in the `build/` folder.
   holds the C library and headers programs are built with.
 - On Windows, Git Bash, which runs `scripts/build.sh`.
 - Git.
-
-## Build
 
 <Steps>
 
@@ -71,15 +104,15 @@ build/bin/peeper run examples/01_functions.peep
 
 ## Platforms
 
-CI builds and tests the compiler on each of these, and builds a toolchain pack
-for it:
+CI builds a toolchain pack for each of these, and builds and tests the compiler
+on each except Linux ARM64:
 
-| System  | Architecture | Toolchain           |
-| ------- | ------------ | ------------------- |
-| Linux   | x86-64       | LLVM                |
-| Linux   | ARM64        | LLVM                |
-| macOS   | ARM64        | LLVM                |
-| Windows | x86-64       | LLVM through llvm-mingw |
+| System  | Architecture | Toolchain               | Release |
+| ------- | ------------ | ----------------------- | ------- |
+| Linux   | x86-64       | LLVM                    | yes     |
+| Linux   | ARM64        | LLVM                    | no      |
+| macOS   | ARM64        | LLVM                    | yes     |
+| Windows | x86-64       | LLVM through llvm-mingw | yes     |
 
 On x86-64 Linux, `-target i686-linux` builds 32-bit programs too, with the
 32-bit C library installed.
