@@ -177,3 +177,59 @@ export const run: StoryRow[] = [
   [0, '$ peeper run src/main.peep'],
   [9, 'max: 3'],
 ];
+
+/** One step of the story: its tab, what its window shows, and what it says about it. */
+export type Stage = { tab: string; file: string; title: string; text: string; rows: StoryRow[] };
+
+/** The steps from source to a running program. The first shows the source, so it has no rows. */
+export const stages: Stage[] = [
+  {
+    tab: 'Source',
+    file: 'src/main.peep',
+    title: 'You write a program.',
+    text: 'Scroll, and this whole program turns into what the processor runs. Each band is one source line, and the bar beside it says which function it is in. Every step is what the compiler really wrote.',
+    rows: [],
+  },
+  {
+    tab: 'THIR',
+    file: 'main.thir',
+    title: 'Every name gets an identity.',
+    text: 'The checker resolves each name and type. `a` becomes the local `a.0`, `b` becomes `b.1`, and each literal is now an `i32`.',
+    rows: thir,
+  },
+  {
+    tab: 'MIR',
+    file: 'main.mir',
+    title: 'The code becomes a graph.',
+    text: 'Lowering turns each function into blocks and jumps. On this graph the compiler checks that every path returns, nothing is used after it moves, and no borrow overlaps a `&mut`.',
+    rows: mir,
+  },
+  {
+    tab: 'LLVM IR',
+    file: 'main.ll',
+    title: 'The graph becomes LLVM IR.',
+    text: 'Each block becomes LLVM text, written on worker threads while the next module is still being checked.',
+    rows: llvm,
+  },
+  {
+    tab: 'x86-64',
+    file: 'objdump -d main',
+    title: 'LLVM IR becomes machine code.',
+    text: 'Clang compiles the modules, one per core. Each instruction is now a few bytes, shown beside what they mean.',
+    rows: machine,
+  },
+  {
+    tab: 'Binary',
+    file: 'main',
+    title: 'Only the bytes are left.',
+    text: 'This is all the processor sees of `max` and `main`. The linker adds Peeper’s runtime, and a `-release` build of this program comes to about 8 KB.',
+    rows: binary,
+  },
+  {
+    tab: 'Run',
+    file: 'terminal',
+    title: 'And it runs.',
+    text: '`peeper run` builds the program, then runs it. `max(2, 3)` is `3`.',
+    rows: run,
+  },
+];
