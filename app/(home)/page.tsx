@@ -1,11 +1,11 @@
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { CursorMuncher } from '@/components/home/cursor-muncher';
 import { Diagnostic } from '@/components/home/diagnostic';
 import { Features } from '@/components/home/features';
 import { GetStarted } from '@/components/home/get-started';
 import { Hero } from '@/components/home/hero';
 import { MotionProvider } from '@/components/home/motion-provider';
-import { PeekingMascot } from '@/components/home/peeking-mascot';
 import { Pipeline } from '@/components/home/pipeline';
 import { heroProgram, storyProgram, tourPrograms } from '@/components/home/programs';
 import { Tour } from '@/components/home/tour';
@@ -43,7 +43,7 @@ function Closing() {
   return (
     <section className="mx-auto max-w-6xl px-4 pt-16 pb-24 sm:px-6">
       <div className="relative">
-        <PeekingMascot delay={0.3} className="left-10 w-28 sm:left-16" />
+        <CursorMuncher className="left-10 w-28 sm:left-16" />
         <div className="relative overflow-hidden rounded-3xl border bg-fd-card px-6 py-14 text-center sm:px-12">
           <div
             aria-hidden="true"

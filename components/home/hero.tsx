@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { Token } from '@/lib/highlight';
 import { CodeLines } from './code-lines';
-import { PeekingMascot } from './peeking-mascot';
+import { CursorMuncher } from './cursor-muncher';
 import { Window } from './window';
 
 const command = 'peeper run src/main.peep';
@@ -107,7 +107,7 @@ export function Hero({ lines }: { lines: Token[][] }) {
           className="relative min-w-0 [perspective:1200px]"
         >
           <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand/25 via-brand-2/10 to-brand-3/25 blur-3xl" />
-          <PeekingMascot delay={1.1} className="right-8 w-24 sm:w-28" />
+          <CursorMuncher className="right-8 w-24 sm:w-28" />
           <CodeLines title="src/main.peep" lines={lines} delay={codeStart} step={step} />
           <Window title="terminal" className="mt-4 sm:mr-10 sm:-ml-6">
             <div className="p-4 font-mono text-[13px] leading-6">

@@ -93,3 +93,11 @@ html > body[data-scroll-locked] {
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 75%);
 }
+
+/* The avatar temporarily holds the pointer, including over links and buttons. */
+/* biome-ignore-start lint/complexity/noImportantStyles: override interactive cursor styles during the act */
+html.cursor-munched,
+html.cursor-munched * {
+  cursor: none !important;
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: see above */
