@@ -1,19 +1,31 @@
 'use client';
+import { CodeBlockTab, CodeBlockTabs } from 'fumadocs-ui/components/codeblock';
 import { Check, Copy } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import { CodeTabsList, CodeTabsTrigger } from '@/components/code-tabs';
 import { PillTabs } from './pill-tabs';
 import { SectionHeading } from './section-heading';
 import { Window } from './window';
 
 const release = 'https://github.com/PeeperLanguage/compiler/releases/latest/download';
 
-const ways = [
+/** The commands of a step that differs by system: `name` is its tab. */
+type Choice = { name: string; command: string };
+
+type Step = { note: string } & ({ command: string } | { choices: Choice[] });
+
+const ways: { name: string; steps: Step[]; platforms: string[] }[] = [
   {
     name: 'Install',
     steps: [
-      { note: 'Linux and macOS', command: `curl -fsSL ${release}/install.sh | sh` },
-      { note: 'Windows PowerShell', command: `irm ${release}/install.ps1 | iex` },
+      {
+        note: 'install the compiler',
+        choices: [
+          { name: 'Linux and macOS', command: `curl -fsSL ${release}/install.sh | sh` },
+          { name: 'Windows PowerShell', command: `irm ${release}/install.ps1 | iex` },
+        ],
+      },
       { note: 'then, in a new terminal and an empty folder', command: 'peeper init hello' },
       { note: 'run the new project', command: 'peeper run' },
     ],
@@ -27,8 +39,11 @@ const ways = [
         command: 'git clone https://github.com/PeeperLanguage/compiler.git && cd compiler',
       },
       {
-        note: 'fetch the pinned LLVM toolchain; on Windows, pwsh scripts/setup.ps1',
-        command: 'bash scripts/setup.sh',
+        note: 'fetch the pinned LLVM toolchain',
+        choices: [
+          { name: 'Linux and macOS', command: 'bash scripts/setup.sh' },
+          { name: 'Windows PowerShell', command: 'pwsh scripts/setup.ps1' },
+        ],
       },
       { note: 'build the compiler', command: 'bash scripts/build.sh' },
       { note: 'run a program', command: 'build/bin/peeper run examples/01_functions.peep' },
@@ -59,7 +74,13 @@ export function GetStarted() {
           <Window title="terminal">
             <ol className="divide-y">
               {way.steps.map((step) => (
-                <Step key={step.command} {...step} />
+                <li key={step.note}>
+                  {'choices' in step ? (
+                    <Choices note={step.note} choices={step.choices} />
+                  ) : (
+                    <Command note={step.note} command={step.command} />
+                  )}
+                </li>
               ))}
             </ol>
           </Window>
@@ -79,10 +100,35 @@ export function GetStarted() {
   );
 }
 
-function Step({ note, command }: { note: string; command: string }) {
+/** A step with one command per system. The docs' tabs share the same `groupId`, so one pick holds. */
+function Choices({ note, choices }: { note: string; choices: Choice[] }) {
+  return (
+    <CodeBlockTabs
+      groupId="platform"
+      persist
+      defaultValue={choices[0].name}
+      className="my-0 rounded-none border-0 bg-transparent"
+    >
+      <CodeTabsList>
+        {choices.map(({ name }) => (
+          <CodeTabsTrigger key={name} value={name}>
+            {name}
+          </CodeTabsTrigger>
+        ))}
+      </CodeTabsList>
+      {choices.map(({ name, command }) => (
+        <CodeBlockTab key={name} value={name} className="bg-fd-secondary">
+          <Command note={note} command={command} />
+        </CodeBlockTab>
+      ))}
+    </CodeBlockTabs>
+  );
+}
+
+function Command({ note, command }: { note: string; command: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <li className="group flex items-center gap-3 px-4 py-3">
+    <div className="group flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1 font-mono text-[13px]">
         <p className="text-xs text-fd-muted-foreground"># {note}</p>
         <p className="mt-1 [overflow-wrap:anywhere]">
@@ -103,6 +149,6 @@ function Step({ note, command }: { note: string; command: string }) {
       >
         {copied ? <Check className="size-4 text-brand" /> : <Copy className="size-4" />}
       </button>
-    </li>
+    </div>
   );
 }

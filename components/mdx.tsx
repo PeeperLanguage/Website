@@ -2,6 +2,7 @@ import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
+import { CodeTabs, CodeTabsList, CodeTabsTrigger } from '@/components/code-tabs';
 import { terminalLines } from '@/lib/ansi';
 import { terminalOutput } from '@/lib/terminal-output';
 
@@ -40,6 +41,9 @@ function Terminal({
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
+    CodeBlockTabs: CodeTabs,
+    CodeBlockTabsList: CodeTabsList,
+    CodeBlockTabsTrigger: CodeTabsTrigger,
     Step,
     Steps,
     Terminal,

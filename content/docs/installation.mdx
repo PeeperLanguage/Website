@@ -5,15 +5,11 @@ description: Install a prebuilt compiler, or build it from source.
 
 ## Install a release
 
-Linux and macOS:
-
-```bash
+```bash tab="Linux and macOS" tab-group="platform"
 curl -fsSL https://github.com/PeeperLanguage/compiler/releases/latest/download/install.sh | sh
 ```
 
-Windows PowerShell:
-
-```bash
+```powershell tab="Windows PowerShell" tab-group="platform"
 irm https://github.com/PeeperLanguage/compiler/releases/latest/download/install.ps1 | iex
 ```
 
@@ -68,8 +64,12 @@ cd compiler
 
 ### Set up the toolchain
 
-```bash
-bash scripts/setup.sh        # on Windows: pwsh scripts/setup.ps1
+```bash tab="Linux and macOS" tab-group="platform"
+bash scripts/setup.sh
+```
+
+```powershell tab="Windows PowerShell" tab-group="platform"
+pwsh scripts/setup.ps1
 ```
 
 This downloads the LLVM toolchain pack CI built for your machine, checks it
