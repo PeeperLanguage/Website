@@ -5,34 +5,45 @@ import type { MouseEvent } from 'react';
 import { Inline } from './inline';
 import { SectionHeading } from './section-heading';
 
+/** When the feature does its work: while compiling, while the program runs, or at your desk. */
+const compiling = 'bg-brand/12 text-brand';
+const running = 'bg-brand-3/12 text-brand-3';
+const tooling = 'bg-brand-2/12 text-brand-2';
+
 const features = [
   {
     icon: ShieldCheck,
+    when: compiling,
     title: 'Moves and borrows, checked',
     text: 'A struct moves when it is passed, and a `&mut` borrow cannot overlap a reference still in use. The compiler finds both before the program runs.',
   },
   {
     icon: Calculator,
+    when: compiling,
     title: 'Constants at compile time',
     text: '`const` values, and the expressions that use them, are worked out while compiling. Their types can come from where they are used.',
   },
   {
     icon: Siren,
+    when: running,
     title: 'Checks that stay on',
     text: 'An index, a division or a shift the compiler cannot prove safe is checked when the program runs. A failure names the file, line and column.',
   },
   {
     icon: Wrench,
+    when: tooling,
     title: 'Fixes, not only errors',
     text: 'Many errors carry a fix. `peeper fix` applies them, and an editor offers them as quick fixes.',
   },
   {
     icon: Zap,
+    when: tooling,
     title: 'An editor that keeps up',
     text: 'The language server re-checks only the modules an edit affects, and keeps answering while the code is broken.',
   },
   {
     icon: Cpu,
+    when: compiling,
     title: 'Native on three systems',
     text: 'Linux, macOS and Windows, each with its own pinned LLVM toolchain, so a build never depends on what is on your PATH.',
   },
@@ -61,7 +72,7 @@ export function Features() {
         transition={{ staggerChildren: 0.08 }}
         className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
       >
-        {features.map(({ icon: Icon, title, text }) => (
+        {features.map(({ icon: Icon, when, title, text }) => (
           <motion.li
             key={title}
             variants={{
@@ -79,7 +90,9 @@ export function Features() {
                   'radial-gradient(320px circle at var(--x) var(--y), color-mix(in oklab, var(--color-brand) 14%, transparent), transparent 70%)',
               }}
             />
-            <span className="relative flex size-10 items-center justify-center rounded-xl border bg-fd-background text-brand">
+            <span
+              className={`relative flex size-10 items-center justify-center rounded-xl ${when}`}
+            >
               <Icon className="size-5" />
             </span>
             <h3 className="relative mt-5 font-semibold">{title}</h3>

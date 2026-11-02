@@ -17,7 +17,6 @@ export function CursorMuncher({ className }: { className?: string }) {
       <button
         type="button"
         aria-label="Feed Peeper your cursor"
-        aria-describedby={`${id}-status`}
         title="Hover my mouth or click to feed me your cursor"
         className="block w-full touch-manipulation rounded-xl border-0 bg-transparent p-0 outline-offset-4 focus-visible:outline-2 focus-visible:outline-brand"
       >
@@ -50,7 +49,7 @@ export function CursorMuncher({ className }: { className?: string }) {
           <circle data-mouth-hit="" cx="547" cy="600" r="90" fill="transparent" />
         </svg>
       </button>
-      <p id={`${id}-status`} role="status" aria-live="polite" className="sr-only">
+      <p role="status" aria-live="polite" className="sr-only">
         Psst… feed me your cursor.
       </p>
     </div>

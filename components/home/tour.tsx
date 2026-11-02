@@ -1,4 +1,5 @@
 'use client';
+import { CornerDownRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -26,32 +27,37 @@ export function Tour({ samples }: { samples: Sample[] }) {
       </SectionHeading>
 
       <div className="mx-auto mt-12 max-w-3xl">
-        <PillTabs names={samples.map((item) => item.name)} active={active} onPick={setActive} />
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={sample.name}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25 }}
-            className="mt-8"
-          >
-            <CodeLines
-              title="main.peep"
-              lines={sample.lines}
-              step={0.025}
-              footer={
-                <div className="border-t bg-fd-background/60 px-4 py-3 font-mono text-[13px] leading-6">
-                  <span className="select-none text-brand">→ </span>
-                  <span className="whitespace-pre-wrap text-fd-muted-foreground">
-                    {sample.output}
-                  </span>
-                </div>
-              }
-            />
-          </motion.div>
-        </AnimatePresence>
+        <PillTabs
+          label="Sample programs"
+          names={samples.map((item) => item.name)}
+          active={active}
+          onPick={setActive}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={sample.name}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25 }}
+              className="mt-8"
+            >
+              <CodeLines
+                title="main.peep"
+                lines={sample.lines}
+                step={0.025}
+                footer={
+                  <div className="flex gap-2 border-t bg-fd-background/60 px-4 py-3 font-mono text-[13px] leading-6">
+                    <CornerDownRight aria-hidden className="mt-1 size-3.5 shrink-0 text-brand" />
+                    <span className="whitespace-pre-wrap text-fd-muted-foreground">
+                      {sample.output}
+                    </span>
+                  </div>
+                }
+              />
+            </motion.div>
+          </AnimatePresence>
+        </PillTabs>
         <p className="mt-6 text-center text-sm text-fd-muted-foreground">
           More in the{' '}
           <Link

@@ -23,9 +23,9 @@ import { Window } from '@/components/home/window';
 import { Editor } from '@/components/playground/editor';
 import { FileTree } from '@/components/playground/file-tree';
 import { TerminalText } from '@/components/playground/terminal-text';
-import type { CheckReply, CheckRequest, RunReply } from '@/lib/checker';
+import { CHECKER_FAILED, type CheckReply, type CheckRequest, type RunReply } from '@/lib/checker';
 import { cn } from '@/lib/cn';
-import { allFolders, baseName, isInside, MAIN } from '@/lib/file-paths';
+import { allFolders, baseName, isInside, MAIN, sharedFiles } from '@/lib/file-paths';
 
 const QUIET_MS = 200; // after the last key, so typing never waits on a check
 const LIMIT_MS = 10_000; // a run past this is ended, as a loop may never finish
@@ -214,7 +214,12 @@ function FileTabs({
     <span
       key={name}
       ref={(tab) => {
-        if (name === active) tab?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        // Not `scrollIntoView`: it would move where the next press of Tab starts, past the page.
+        const strip = tab?.parentElement;
+        if (name !== active || !tab || !strip) return;
+        const shown = strip.getBoundingClientRect();
+        const { left, right } = tab.getBoundingClientRect();
+        strip.scrollLeft += Math.min(0, left - shown.left) + Math.max(0, right - shown.right);
       }}
       className={cn(
         'group inline-flex shrink-0 items-center border-r border-b',
@@ -268,8 +273,8 @@ export function Playground() {
     // The files of a shared link, here or pasted into this open tab. After
     // the first render, so the server's HTML and the page's agree.
     function loadLink() {
-      const shared = Object.fromEntries(new URLSearchParams(location.hash.slice(1)));
-      if (!(MAIN in shared)) return;
+      const shared = sharedFiles(location.hash.slice(1));
+      if (!shared) return;
       setFiles(shared);
       setActive(MAIN);
       setTabs([MAIN]);
@@ -281,6 +286,10 @@ export function Playground() {
     const checker = newWorker();
     checker.addEventListener('message', ({ data }: MessageEvent<CheckReply>) => {
       if (data.id === latest.current) setReply(data);
+    });
+    // A worker that cannot load never replies, so this is the only word of it.
+    checker.addEventListener('error', () => {
+      setReply({ id: latest.current, failure: CHECKER_FAILED });
     });
     worker.current = checker;
     return () => {
@@ -308,15 +317,14 @@ export function Playground() {
   function runCode() {
     setRun({ state: 'running' });
     const runner = newWorker();
-    const limit = setTimeout(() => {
-      runner.terminate();
-      setRun({ state: 'stopped' });
-    }, LIMIT_MS);
-    runner.addEventListener('message', ({ data }: MessageEvent<RunReply>) => {
+    const end = (result: Run) => {
       clearTimeout(limit);
       runner.terminate();
-      setRun(data);
-    });
+      setRun(result);
+    };
+    const limit = setTimeout(() => end({ state: 'stopped' }), LIMIT_MS);
+    runner.addEventListener('message', ({ data }: MessageEvent<RunReply>) => end(data));
+    runner.addEventListener('error', () => end({ id: 0, failure: CHECKER_FAILED }));
     const request: CheckRequest = { id: 0, files, run: true };
     runner.postMessage(request);
   }
@@ -404,7 +412,7 @@ export function Playground() {
             type="button"
             onClick={runCode}
             disabled={running}
-            className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-fd-foreground px-3 py-1.5 font-sans text-xs font-semibold text-fd-background transition hover:opacity-85 disabled:opacity-50"
+            className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand to-brand-2 px-3 py-1.5 font-sans text-xs font-semibold text-on-brand transition hover:opacity-85 disabled:opacity-50"
           >
             <Play aria-hidden className="size-3 fill-current" />
             Run
@@ -470,6 +478,7 @@ export function Playground() {
             </span>
             <span className="hidden sm:inline">UTF-8</span>
             <span>Peeper {VERSION}</span>
+            <span className="hidden lg:inline">Esc, then Tab: leave the editor</span>
             <span className="ml-auto truncate">
               {!reply && 'Starting the checker…'}
               {reply?.failure && `Could not check: ${reply.failure}.`}

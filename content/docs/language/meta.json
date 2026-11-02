@@ -1,5 +1,6 @@
 {
   "title": "Language",
+  "icon": "Braces",
   "pages": [
     "functions",
     "numbers",

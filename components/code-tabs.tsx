@@ -20,7 +20,7 @@ export function CodeTabsTrigger(props: ComponentProps<typeof CodeBlockTabsTrigge
   return (
     <CodeBlockTabsTrigger
       {...props}
-      className="px-3 py-2 font-mono text-xs data-active:bg-fd-secondary data-active:text-fd-foreground [&>div]:hidden"
+      className="px-3 py-2 font-mono text-xs data-active:bg-fd-secondary data-active:text-brand [&>div]:hidden"
     />
   );
 }

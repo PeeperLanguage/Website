@@ -7,11 +7,6 @@ export const heroProgram =
 /** The tour tabs: a name, a program and what it prints. */
 export const tourPrograms = [
   {
-    name: 'Functions',
-    code: 'const Limit = 10;                   // its type comes from where it is used\nconst Answer: i32 = Limit * 4 + 2;  // computed while compiling\n\nfn square(x: i64) -> i64 {\n    return x * x;\n}\n\nfn gcd(a: i64, b: i64) -> i64 {\n    if b == 0 {\n        return a;\n    }\n    return gcd(b, a % b);\n}\n\nfn main() -> i32 {\n    println("square:", square(Limit));\n    println("gcd:", gcd(48, 18));\n    return Answer - 42;             // the exit code: 0\n}\n',
-    output: 'square: 100\ngcd: 6',
-  },
-  {
     name: 'Loops',
     code: 'fn main() {\n    print("step:");\n    for v in 0..10:3 { print("", v); }\n    println();\n\n    print("down:");\n    for v in 5..=0:2 { print("", v); }\n    println();\n\n    let mut n = 1;\n    for n < 100 {                   // while `n < 100`\n        n = n * 3;\n    }\n    println("while:", n);\n}\n',
     output: 'step: 0 3 6 9\ndown: 5 3 1\nwhile: 243',

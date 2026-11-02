@@ -1,6 +1,6 @@
 'use client';
 import { CodeBlockTab, CodeBlockTabs } from 'fumadocs-ui/components/codeblock';
-import { Check, Copy } from 'lucide-react';
+import { Check, ChevronRight, Copy } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { CodeTabsList, CodeTabsTrigger } from '@/components/code-tabs';
@@ -69,32 +69,38 @@ export function GetStarted() {
         transition={{ duration: 0.6 }}
         className="mx-auto mt-12 max-w-3xl"
       >
-        <PillTabs names={ways.map(({ name }) => name)} active={active} onPick={setActive} />
-        <div className="mt-8">
-          <Window title="terminal">
-            <ol className="divide-y">
-              {way.steps.map((step) => (
-                <li key={step.note}>
-                  {'choices' in step ? (
-                    <Choices note={step.note} choices={step.choices} />
-                  ) : (
-                    <Command note={step.note} command={step.command} />
-                  )}
-                </li>
-              ))}
-            </ol>
-          </Window>
-        </div>
-        <ul className="mt-6 flex flex-wrap justify-center gap-2">
-          {way.platforms.map((platform) => (
-            <li
-              key={platform}
-              className="rounded-full border bg-fd-card px-3 py-1 font-mono text-xs text-fd-muted-foreground"
-            >
-              {platform}
-            </li>
-          ))}
-        </ul>
+        <PillTabs
+          label="Ways to get Peeper"
+          names={ways.map(({ name }) => name)}
+          active={active}
+          onPick={setActive}
+        >
+          <div className="mt-8">
+            <Window title="terminal">
+              <ol className="divide-y">
+                {way.steps.map((step) => (
+                  <li key={step.note}>
+                    {'choices' in step ? (
+                      <Choices note={step.note} choices={step.choices} />
+                    ) : (
+                      <Command note={step.note} command={step.command} />
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </Window>
+          </div>
+          <ul className="mt-6 flex flex-wrap justify-center gap-2">
+            {way.platforms.map((platform) => (
+              <li
+                key={platform}
+                className="rounded-full border bg-fd-card px-3 py-1 font-mono text-xs text-fd-muted-foreground"
+              >
+                {platform}
+              </li>
+            ))}
+          </ul>
+        </PillTabs>
       </motion.div>
     </section>
   );
@@ -131,9 +137,9 @@ function Command({ note, command }: { note: string; command: string }) {
     <div className="group flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1 font-mono text-[13px]">
         <p className="text-xs text-fd-muted-foreground"># {note}</p>
-        <p className="mt-1 [overflow-wrap:anywhere]">
-          <span className="select-none text-brand">$ </span>
-          {command}
+        <p className="mt-1 flex gap-1.5 [overflow-wrap:anywhere]">
+          <ChevronRight aria-hidden className="mt-0.5 size-3.5 shrink-0 text-brand" />
+          <span className="min-w-0">{command}</span>
         </p>
       </div>
       <button
