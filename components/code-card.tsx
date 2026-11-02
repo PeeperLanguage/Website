@@ -49,7 +49,14 @@ export function CodeTokens({ tokens }: { tokens: Token[] }) {
       // biome-ignore lint/suspicious/noArrayIndexKey: tokens have no other identity
       key={at}
       className="token"
-      style={{ '--token-light': token.light, '--token-dark': token.dark } as CSSProperties}
+      style={
+        {
+          '--token-light': token.light,
+          '--token-dark': token.dark,
+          '--token-light-style': token.lightStyle,
+          '--token-dark-style': token.darkStyle,
+        } as CSSProperties
+      }
     >
       {token.content}
     </span>

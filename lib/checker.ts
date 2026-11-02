@@ -18,7 +18,7 @@ export interface Place {
 /** One diagnostic, as `crates/driver/browser` in the compiler repo gives it. */
 export interface Entry {
   severity: 'error' | 'warning' | 'info' | 'hint';
-  code: string;
+  code: string; // empty for a problem with peeper.toml
   message: string;
   place: Place | null;
   related: Place[];

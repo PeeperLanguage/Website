@@ -65,6 +65,9 @@ importers:
       "@types/react-dom":
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
+      material-icon-theme:
+        specifier: 5.40.0
+        version: 5.40.0
       postcss:
         specifier: ^8.5.31
         version: 8.5.32
@@ -1571,6 +1574,12 @@ packages:
       }
     engines: { node: ">= 22.22" }
 
+  chroma-js@3.2.0:
+    resolution:
+      {
+        integrity: sha512-os/OippSlX1RlWWr+QDPcGUZs0uoqr32urfxESG9U93lhUfbnlyckte84Q8P1UQY/qth983AS1JONKmLS4T0nw==,
+      }
+
   class-variance-authority@0.7.1:
     resolution:
       {
@@ -2168,6 +2177,13 @@ packages:
       }
     engines: { node: ">= 18" }
     hasBin: true
+
+  material-icon-theme@5.40.0:
+    resolution:
+      {
+        integrity: sha512-IrvgusbwtqxhUtVgUy0nToJcfN7CYVRdbBxKMfbo0vab9flVBHA5INZ9UiE5SgRj+PM6opCl5nn5TZdpm2UaxA==,
+      }
+    engines: { vscode: ^1.55.0 }
 
   mdast-util-find-and-replace@3.0.4:
     resolution:
@@ -3758,6 +3774,8 @@ snapshots:
     dependencies:
       readdirp: 5.1.1
 
+  chroma-js@3.2.0: {}
+
   class-variance-authority@0.7.1:
     dependencies:
       clsx: 2.1.1
@@ -4137,6 +4155,10 @@ snapshots:
   markdown-table@3.0.4: {}
 
   marked@14.0.0: {}
+
+  material-icon-theme@5.40.0:
+    dependencies:
+      chroma-js: 3.2.0
 
   mdast-util-find-and-replace@3.0.4:
     dependencies:

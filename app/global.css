@@ -114,9 +114,11 @@ html > body[data-scroll-locked] {
 /* A highlighted token's colors, from lib/highlight.ts. */
 .token {
   color: var(--token-light);
+  font-style: var(--token-light-style, normal);
 }
 .dark .token {
   color: var(--token-dark);
+  font-style: var(--token-dark-style, normal);
 }
 
 .text-gradient {

@@ -22,7 +22,8 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       className={`${sans.variable} ${mono.variable} font-sans`}
       suppressHydrationWarning
     >
-      <body className="flex flex-col min-h-screen">
+      {/* Extensions such as Grammarly add attributes here before React loads. */}
+      <body className="flex flex-col min-h-screen" suppressHydrationWarning>
         <RootProvider theme={{ defaultTheme: 'dark' }}>{children}</RootProvider>
       </body>
     </html>
