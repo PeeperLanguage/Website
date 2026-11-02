@@ -94,6 +94,12 @@ html > body[data-scroll-locked] {
   mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 75%);
 }
 
+/* The category rows of the docs sidebar: fumadocs gives them no class of their own. */
+:is(#nd-sidebar, #nd-sidebar-mobile) button[aria-expanded]:not([aria-label], [aria-haspopup]) {
+  color: var(--color-fd-foreground);
+  font-weight: 600;
+}
+
 /* The avatar temporarily holds the pointer, including over links and buttons. */
 /* biome-ignore-start lint/complexity/noImportantStyles: override interactive cursor styles during the act */
 html.cursor-munched,
