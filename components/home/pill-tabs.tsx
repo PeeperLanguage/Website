@@ -32,15 +32,13 @@ export function PillTabs({
             value={name}
             className={cn(
               'relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
-              index === active
-                ? 'text-fd-foreground'
-                : 'text-fd-muted-foreground hover:text-fd-foreground',
+              index === active ? 'text-brand' : 'text-fd-muted-foreground hover:text-fd-foreground',
             )}
           >
             {index === active && (
               <motion.span
                 layoutId={marker}
-                className="absolute inset-0 -z-0 rounded-full bg-fd-accent"
+                className="absolute inset-0 -z-0 rounded-full bg-brand/10"
                 transition={{ type: 'spring', stiffness: 400, damping: 32 }}
               />
             )}

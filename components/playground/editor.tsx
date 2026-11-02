@@ -10,7 +10,7 @@ const THEMES = { light: 'peeper-light', dark: 'peeper-dark' };
 
 // The site's code colors on `--color-fd-card`, as Monaco takes only hex.
 const COLORS = {
-  light: { base: 'github-light', background: '#f2f2f2', lineHighlight: '#0000000a' },
+  light: { base: 'github-light', background: '#edf3f1', lineHighlight: '#0000000a' },
   dark: { base: 'github-dark', background: '#0e1015', lineHighlight: '#ffffff0a' },
 };
 

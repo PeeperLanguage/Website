@@ -412,7 +412,7 @@ export function Playground() {
             type="button"
             onClick={runCode}
             disabled={running}
-            className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-fd-foreground px-3 py-1.5 font-sans text-xs font-semibold text-fd-background transition hover:opacity-85 disabled:opacity-50"
+            className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand to-brand-2 px-3 py-1.5 font-sans text-xs font-semibold text-on-brand transition hover:opacity-85 disabled:opacity-50"
           >
             <Play aria-hidden className="size-3 fill-current" />
             Run

@@ -5,23 +5,64 @@
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --color-fd-primary: hsl(174, 63%, 32%);
-  --color-fd-ring: hsl(174, 63%, 32%);
-  /* The mascot's teal into cyan, and a warm orange to set against them. */
-  --color-brand: hsl(174, 55%, 42%);
-  --color-brand-2: hsl(192, 80%, 44%);
-  --color-brand-3: hsl(28, 80%, 56%);
+  /* Cool paper with a little of the mascot's teal in it. */
+  --color-fd-background: hsl(165, 22%, 96.5%);
+  --color-fd-foreground: hsl(200, 30%, 8%);
+  --color-fd-card: hsl(165, 20%, 94%);
+  --color-fd-card-foreground: hsl(200, 30%, 8%);
+  --color-fd-popover: hsl(165, 25%, 98.5%);
+  --color-fd-muted: hsl(165, 18%, 92.5%);
+  --color-fd-muted-foreground: hsl(190, 12%, 34%);
+  --color-fd-secondary: hsl(165, 18%, 91%);
+  --color-fd-border: hsla(170, 20%, 55%, 35%);
+  --color-fd-accent: hsla(170, 25%, 65%, 35%);
+  --color-fd-primary: hsl(174, 72%, 25%);
+  --color-fd-ring: hsl(174, 72%, 25%);
+  /*
+   * The mascot's teal for the compiler, cyan for the tools around it, and orange for what happens
+   * when a program runs. Darker here than in the dark theme, as they carry text on both.
+   */
+  --color-brand: hsl(174, 72%, 25%);
+  --color-brand-2: hsl(192, 85%, 28%);
+  --color-brand-3: hsl(26, 85%, 36%);
+  --color-on-brand: hsl(0, 0%, 100%); /* text on a brand fill */
 }
 
 .dark {
   --color-fd-primary: hsl(174, 42%, 51%);
   --color-fd-ring: hsl(174, 42%, 51%);
   --color-fd-background: hsl(222, 22%, 5%);
+  --color-fd-foreground: hsl(200, 20%, 93%);
   --color-fd-card: hsl(222, 20%, 7%);
+  --color-fd-card-foreground: hsl(200, 20%, 97%);
+  --color-fd-popover: hsl(222, 18%, 10%);
+  --color-fd-popover-foreground: hsl(200, 16%, 88%);
+  --color-fd-muted: hsl(222, 16%, 12%);
+  --color-fd-muted-foreground: hsl(215, 12%, 66%);
+  --color-fd-secondary: hsl(222, 16%, 13%);
+  --color-fd-secondary-foreground: hsl(200, 20%, 93%);
+  --color-fd-border: hsla(215, 25%, 55%, 18%);
+  --color-fd-accent: hsla(215, 20%, 45%, 28%);
+  --color-brand: hsl(174, 55%, 42%);
+  --color-brand-2: hsl(192, 80%, 44%);
+  --color-brand-3: hsl(28, 80%, 56%);
+  --color-on-brand: hsl(222, 30%, 6%);
+}
+
+.dark #nd-sidebar {
+  --color-fd-muted: hsl(222, 14%, 16%);
+  --color-fd-secondary: hsl(222, 14%, 18%);
+  --color-fd-muted-foreground: hsl(215, 14%, 74%);
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-brand) 32%, transparent);
 }
 
 html {
   scrollbar-gutter: stable;
+  caret-color: var(--color-brand);
+  accent-color: var(--color-brand);
 }
 
 /* biome-ignore-start lint/complexity/noImportantStyles: beats the inline style a scroll lock sets */
