@@ -112,7 +112,10 @@ export function Hero({ lines }: { lines: Token[][] }) {
           <Window title="terminal" className="mt-4 sm:mr-10 sm:-ml-6">
             <div className="p-4 font-mono text-[13px] leading-6">
               <div>
-                <ChevronRight aria-hidden className="mr-1.5 inline size-3.5 align-[-2px] text-brand" />
+                <ChevronRight
+                  aria-hidden
+                  className="mr-1.5 inline size-3.5 align-[-2px] text-brand"
+                />
                 {typed}
                 {!ran && (
                   <span className="ml-px inline-block h-4 w-2 translate-y-0.5 animate-pulse bg-fd-foreground/70" />
