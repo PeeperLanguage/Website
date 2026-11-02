@@ -1,4 +1,5 @@
 'use client';
+import { CornerDownRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -46,8 +47,8 @@ export function Tour({ samples }: { samples: Sample[] }) {
                 lines={sample.lines}
                 step={0.025}
                 footer={
-                  <div className="border-t bg-fd-background/60 px-4 py-3 font-mono text-[13px] leading-6">
-                    <span className="select-none text-brand">→ </span>
+                  <div className="flex gap-2 border-t bg-fd-background/60 px-4 py-3 font-mono text-[13px] leading-6">
+                    <CornerDownRight aria-hidden className="mt-1 size-3.5 shrink-0 text-brand" />
                     <span className="whitespace-pre-wrap text-fd-muted-foreground">
                       {sample.output}
                     </span>

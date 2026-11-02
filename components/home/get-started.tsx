@@ -1,6 +1,6 @@
 'use client';
 import { CodeBlockTab, CodeBlockTabs } from 'fumadocs-ui/components/codeblock';
-import { Check, Copy } from 'lucide-react';
+import { Check, ChevronRight, Copy } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { CodeTabsList, CodeTabsTrigger } from '@/components/code-tabs';
@@ -137,9 +137,9 @@ function Command({ note, command }: { note: string; command: string }) {
     <div className="group flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1 font-mono text-[13px]">
         <p className="text-xs text-fd-muted-foreground"># {note}</p>
-        <p className="mt-1 [overflow-wrap:anywhere]">
-          <span className="select-none text-brand">$ </span>
-          {command}
+        <p className="mt-1 flex gap-1.5 [overflow-wrap:anywhere]">
+          <ChevronRight aria-hidden className="mt-0.5 size-3.5 shrink-0 text-brand" />
+          <span className="min-w-0">{command}</span>
         </p>
       </div>
       <button
