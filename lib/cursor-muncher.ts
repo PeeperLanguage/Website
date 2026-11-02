@@ -515,6 +515,24 @@ export function mountCursorMuncher(container: HTMLDivElement) {
   let last = performance.now();
   const tickers = new Set<(dt: number, now: number) => void>();
 
+  // Every frame redraws every shape, so frames run only while something can move: for `ms` after
+  // `wake`, through an act, and until the goo has gone. A still frog on the page costs nothing.
+  const SETTLE_MS = 1500; // longer than the loosest spring takes to come to rest
+  const BLINK_MS = 250; // the two tweens of a blink, and the frames between them
+  let onScreen = false;
+  let framesRunning = false;
+  let awakeUntil = 0;
+  function wake(ms = SETTLE_MS) {
+    awakeUntil = Math.max(awakeUntil, performance.now() + ms);
+    if (framesRunning) return;
+    framesRunning = true;
+    last = performance.now();
+    scheduleFrame(frame);
+  }
+  const wakeIfOnScreen = () => {
+    if (onScreen) wake();
+  };
+
   function frame(now: number) {
     const dt = Math.min(1 / 30, (now - last) / 1000);
     last = now;
@@ -564,9 +582,16 @@ export function mountCursorMuncher(container: HTMLDivElement) {
       o[1] += (ty - o[1]) * ease;
     }
     render();
-    scheduleFrame(frame);
+    framesRunning = activeMuncher === btn || blobs.size > 0 || now < awakeUntil;
+    if (framesRunning) scheduleFrame(frame);
   }
-  scheduleFrame(frame);
+  wake(0); // the first drawing
+  const sight = new IntersectionObserver(([entry]) => {
+    onScreen = entry.isIntersecting;
+    if (onScreen) wake(0);
+  });
+  sight.observe(container);
+  window.addEventListener('scroll', wakeIfOnScreen, { passive: true, signal: events.signal });
 
   let lastMove = { x: 0, y: 0, t: 0 };
   window.addEventListener(
@@ -587,6 +612,7 @@ export function mountCursorMuncher(container: HTMLDivElement) {
       mouse.x = e.clientX;
       mouse.y = e.clientY;
       mouse.seen = true;
+      wakeIfOnScreen();
     },
     { signal: events.signal },
   );
@@ -594,14 +620,16 @@ export function mountCursorMuncher(container: HTMLDivElement) {
   // Blinking: a quick close, a slower open, at random intervals, sometimes twice.
   let blinkSet: number | null = null; // when set, the lids follow this value instead of the spring
   async function blink() {
+    wake(BLINK_MS);
     await tween(60, (t) => (blinkSet = 1 - t), easeIn);
     await tween(130, (t) => (blinkSet = t), easeOut);
     blinkSet = null;
+    wake(0); // a slow machine can run past BLINK_MS: draw the open eyes either way
   }
   (function blinkLoop() {
     scheduleTimeout(
       async () => {
-        if (activeMuncher !== btn) {
+        if (onScreen && !reduce.matches && activeMuncher !== btn) {
           await blink();
           if (Math.random() < 0.25) {
             await sleep(90);
@@ -756,6 +784,7 @@ export function mountCursorMuncher(container: HTMLDivElement) {
       return;
     }
     activeMuncher = btn;
+    wake();
     btn.setAttribute('aria-busy', 'true');
     const hide = kind === 'arrow';
     if (hide) root.classList.add('cursor-munched');
@@ -1125,6 +1154,7 @@ export function mountCursorMuncher(container: HTMLDivElement) {
 
   // A poke: touching the body makes it wobble.
   function poke(strength = 1) {
+    wake();
     S.squash.kick(-2.2 * strength);
     S.wave.kick((Math.random() < 0.5 ? -1 : 1) * 260 * strength);
   }
@@ -1165,6 +1195,7 @@ export function mountCursorMuncher(container: HTMLDivElement) {
   return () => {
     disposed = true;
     events.abort();
+    sight.disconnect();
     for (const id of frames) window.cancelAnimationFrame(id);
     for (const id of timers) window.clearTimeout(id);
     if (activeMuncher === btn) {

@@ -120,10 +120,7 @@ export function Pipeline({ source }: { source: Token[][] }) {
           </div>
 
           <div className="relative min-w-0">
-            <div
-              aria-hidden="true"
-              className="absolute -inset-8 -z-10 rounded-[3rem] bg-gradient-to-br from-brand/25 via-brand-2/5 to-brand-3/20 blur-3xl"
-            />
+            <div aria-hidden="true" className="pipeline-glow absolute -inset-20 -z-10" />
             {/* A box of fixed height, whose size the rows read, and the window centered in it. */}
             <div
               ref={sizedBox}

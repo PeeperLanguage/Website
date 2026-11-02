@@ -2,7 +2,7 @@
 import { ArrowRight, BookOpen, ChevronRight } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useState } from 'react';
 import type { Token } from '@/lib/highlight';
 import { CodeLines } from './code-lines';
 import { CursorMuncher } from './cursor-muncher';
@@ -12,6 +12,15 @@ const command = 'peeper run src/main.peep';
 const output = 'distance: 7';
 const headline = ['Systems', 'code,'];
 const highlighted = ['checked', 'before', 'it', 'runs.'];
+
+/** A `.hero-rise` entrance: in CSS, so the words show without waiting for the page's script. */
+function rise(delay: number, distance: number, blur = 0) {
+  return {
+    '--rise-delay': `${delay}s`,
+    '--rise-distance': `${distance}px`,
+    '--rise-blur': `${blur}px`,
+  } as CSSProperties;
+}
 
 /** The first screen: what Peeper is, a program, and what it prints. */
 export function Hero({ lines }: { lines: Token[][] }) {
@@ -23,22 +32,21 @@ export function Hero({ lines }: { lines: Token[][] }) {
   const ran = typed.length === command.length;
 
   return (
-    <section className="relative isolate overflow-hidden">
+    // Skipped while off-screen, as its glows would go on moving where nobody can see them.
+    <section className="relative isolate overflow-hidden [contain-intrinsic-size:auto_52rem] [content-visibility:auto]">
       <Backdrop />
       <div className="mx-auto grid max-w-6xl gap-14 px-4 pt-20 pb-24 sm:px-6 md:pt-28 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-10">
         <div className="min-w-0">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 rounded-full border bg-fd-card/70 px-3 py-1 text-xs font-medium text-fd-muted-foreground backdrop-blur"
+          <div
+            style={rise(0, 8)}
+            className="hero-rise inline-flex items-center gap-2 rounded-full border bg-fd-card/70 px-3 py-1 text-xs font-medium text-fd-muted-foreground backdrop-blur"
           >
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60 motion-reduce:animate-none" />
               <span className="relative inline-flex size-2 rounded-full bg-brand" />
             </span>
             Pre-release · the compiler is being rebuilt in Rust
-          </motion.div>
+          </div>
 
           <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
             {[headline, highlighted].map((words, line) => (
@@ -47,42 +55,29 @@ export function Hero({ lines }: { lines: Token[][] }) {
                 className={line === 1 ? 'text-gradient block pb-1 text-balance' : 'block'}
               >
                 {words.map((word, index) => (
-                  <motion.span
+                  <span
                     key={word}
-                    className="inline-block"
-                    initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    transition={{
-                      delay: 0.1 + (line * headline.length + index) * 0.07,
-                      duration: 0.6,
-                      ease: [0.2, 0.7, 0.2, 1],
-                    }}
+                    className="hero-rise inline-block"
+                    style={rise(0.1 + (line * headline.length + index) * 0.07, 24, 8)}
                   >
                     {word}
                     {index < words.length - 1 && '\u00a0'}
-                  </motion.span>
+                  </span>
                 ))}
               </span>
             ))}
           </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.6 }}
-            className="mt-6 max-w-xl text-lg text-fd-muted-foreground text-pretty"
+          <p
+            style={rise(0.2, 12)}
+            className="hero-rise mt-6 max-w-xl text-lg text-fd-muted-foreground text-pretty"
           >
             Peeper is an experimental systems programming language. Its compiler checks types,
             paths, moves and borrows, then builds a native program through LLVM, on Linux, macOS and
             Windows.
-          </motion.p>
+          </p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
-            className="mt-9 flex flex-wrap items-center gap-3"
-          >
+          <div style={rise(0.35, 12)} className="hero-rise mt-9 flex flex-wrap items-center gap-3">
             <Link
               href="/docs/installation"
               className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand to-brand-2 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:shadow-brand/40 hover:brightness-110"
@@ -97,7 +92,7 @@ export function Hero({ lines }: { lines: Token[][] }) {
               <BookOpen className="size-4" />
               Take the tour
             </Link>
-          </motion.div>
+          </div>
         </div>
 
         <motion.div
@@ -156,7 +151,7 @@ function useTyped(text: string, startMs: number, reduce: boolean | null) {
   return text.slice(0, count);
 }
 
-/** The hero's backdrop: a faded grid and two slow, drifting glows. */
+/** The hero's backdrop: a faded grid and two slow, drifting glows, moved by CSS alone. */
 function Backdrop() {
   return (
     <div
@@ -164,16 +159,8 @@ function Backdrop() {
       className="absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
     >
       <div className="hero-grid absolute inset-0 opacity-60" />
-      <motion.div
-        className="absolute -top-40 left-[10%] size-[32rem] rounded-full bg-brand/20 blur-[120px]"
-        animate={{ x: [0, 60, 0], y: [0, 40, 0] }}
-        transition={{ duration: 18, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute top-20 right-[5%] size-[28rem] rounded-full bg-brand-3/15 blur-[120px]"
-        animate={{ x: [0, -50, 0], y: [0, 60, 0] }}
-        transition={{ duration: 22, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-      />
+      <div className="hero-glow hero-glow-brand absolute -top-88 left-[calc(10%-12rem)] size-[56rem]" />
+      <div className="hero-glow hero-glow-warm absolute -top-40 right-[calc(5%-15rem)] size-[58rem]" />
     </div>
   );
 }

@@ -94,11 +94,97 @@ html > body[data-scroll-locked] {
   mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 75%);
 }
 
+/* The hero's words, which must not wait for the page's script. */
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise-distance));
+    filter: blur(var(--rise-blur));
+  }
+}
+.hero-rise {
+  animation: hero-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) var(--rise-delay) backwards;
+}
+
+/* Soft circles drawn as gradients: a blur filter on something moving redraws on every frame. */
+@keyframes hero-drift-brand {
+  50% {
+    transform: translate(60px, 40px);
+  }
+}
+@keyframes hero-drift-warm {
+  50% {
+    transform: translate(-50px, 60px);
+  }
+}
+.hero-glow {
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--glow) var(--glow-strength), transparent),
+    color-mix(in oklab, var(--glow) calc(var(--glow-strength) * 0.45), transparent) 45%,
+    transparent
+  );
+}
+.hero-glow-brand {
+  --glow: var(--color-brand);
+  --glow-strength: 18%;
+  animation: hero-drift-brand 18s ease-in-out infinite;
+}
+.hero-glow-warm {
+  --glow: var(--color-brand-3);
+  --glow-strength: 12%;
+  animation: hero-drift-warm 22s ease-in-out infinite;
+}
+
+/* No blur filter either: the rows above this change on every scroll step. */
+.pipeline-glow {
+  /* Each glow fades out inside its own tile, so neither shows the edge of the box. */
+  background:
+    radial-gradient(
+      closest-side,
+      color-mix(in oklab, var(--color-brand) 24%, transparent),
+      transparent
+    )
+    top left / 75% 75% no-repeat,
+    radial-gradient(
+      closest-side,
+      color-mix(in oklab, var(--color-brand-3) 19%, transparent),
+      transparent
+    )
+    bottom right / 75% 75% no-repeat;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise {
+    animation-name: hero-fade;
+  }
+  .hero-glow {
+    animation: none;
+  }
+}
+@keyframes hero-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* The category rows of the docs sidebar: fumadocs gives them no class of their own. */
 :is(#nd-sidebar, #nd-sidebar-mobile) button[aria-expanded]:not([aria-label], [aria-haspopup]) {
   color: var(--color-fd-foreground);
   font-weight: 600;
 }
+
+/* What the home page animates in starts hidden, so with no script it must start shown. */
+/* biome-ignore-start lint/complexity/noImportantStyles: beats the inline style Motion wrote */
+@media (scripting: none) {
+  [style*="opacity:0"] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: see above */
 
 /* The avatar temporarily holds the pointer, including over links and buttons. */
 /* biome-ignore-start lint/complexity/noImportantStyles: override interactive cursor styles during the act */
