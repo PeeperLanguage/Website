@@ -587,8 +587,6 @@ export function mountCursorMuncher(container: HTMLDivElement) {
       mouse.x = e.clientX;
       mouse.y = e.clientY;
       mouse.seen = true;
-      if (activeMuncher !== btn)
-        say(S.mouth.t > 0.25 ? 'Closer… closer…' : 'Psst… feed me your cursor.');
     },
     { signal: events.signal },
   );

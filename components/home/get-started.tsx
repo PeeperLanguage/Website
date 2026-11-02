@@ -69,32 +69,38 @@ export function GetStarted() {
         transition={{ duration: 0.6 }}
         className="mx-auto mt-12 max-w-3xl"
       >
-        <PillTabs names={ways.map(({ name }) => name)} active={active} onPick={setActive} />
-        <div className="mt-8">
-          <Window title="terminal">
-            <ol className="divide-y">
-              {way.steps.map((step) => (
-                <li key={step.note}>
-                  {'choices' in step ? (
-                    <Choices note={step.note} choices={step.choices} />
-                  ) : (
-                    <Command note={step.note} command={step.command} />
-                  )}
-                </li>
-              ))}
-            </ol>
-          </Window>
-        </div>
-        <ul className="mt-6 flex flex-wrap justify-center gap-2">
-          {way.platforms.map((platform) => (
-            <li
-              key={platform}
-              className="rounded-full border bg-fd-card px-3 py-1 font-mono text-xs text-fd-muted-foreground"
-            >
-              {platform}
-            </li>
-          ))}
-        </ul>
+        <PillTabs
+          label="Ways to get Peeper"
+          names={ways.map(({ name }) => name)}
+          active={active}
+          onPick={setActive}
+        >
+          <div className="mt-8">
+            <Window title="terminal">
+              <ol className="divide-y">
+                {way.steps.map((step) => (
+                  <li key={step.note}>
+                    {'choices' in step ? (
+                      <Choices note={step.note} choices={step.choices} />
+                    ) : (
+                      <Command note={step.note} command={step.command} />
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </Window>
+          </div>
+          <ul className="mt-6 flex flex-wrap justify-center gap-2">
+            {way.platforms.map((platform) => (
+              <li
+                key={platform}
+                className="rounded-full border bg-fd-card px-3 py-1 font-mono text-xs text-fd-muted-foreground"
+              >
+                {platform}
+              </li>
+            ))}
+          </ul>
+        </PillTabs>
       </motion.div>
     </section>
   );

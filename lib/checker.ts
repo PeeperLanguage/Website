@@ -1,3 +1,6 @@
+/** Why there is no reply when the checker never got going. */
+export const CHECKER_FAILED = 'the checker could not start';
+
 /** A line and a UTF-16 column in a file, both from 1. */
 export interface Position {
   line: number;

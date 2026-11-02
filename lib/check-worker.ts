@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import type { CheckReply, CheckRequest, RunReply } from './checker';
+import { CHECKER_FAILED, type CheckReply, type CheckRequest, type RunReply } from './checker';
 
 // The compiler's checker, `crates/driver/browser` in the compiler repo, is a
 // program that reads a request from stdin and writes its findings to stdout.
@@ -111,7 +111,7 @@ addEventListener('message', async ({ data }: MessageEvent<CheckRequest>) => {
     const failure =
       stopped instanceof WebAssembly.RuntimeError || stopped instanceof RangeError
         ? 'this code is too deeply nested to check here'
-        : 'the checker could not start';
+        : CHECKER_FAILED;
     reply = { id: data.id, failure };
   }
   postMessage(reply);

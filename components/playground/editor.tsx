@@ -120,6 +120,7 @@ export function Editor({
   }>();
   const models = useRef(new Map<string, Monaco.editor.ITextModel>());
   const viewStates = useRef(new Map<string, Monaco.editor.ICodeEditorViewState | null>());
+  const [failed, setFailed] = useState(false); // Monaco did not load
   const shown = useRef<string>(undefined);
   // The latest callbacks: the editor outlives the render that made it.
   const report = useRef({ onEdit, onCaret });
@@ -131,39 +132,44 @@ export function Editor({
       ended = true;
     };
     monaco ??= setUpMonaco();
-    monaco.then((api) => {
-      if (ended || !host.current) return;
-      const view = api.editor.create(host.current, {
-        model: null,
-        theme: siteTheme(),
-        ariaLabel: 'Peeper code',
-        automaticLayout: true,
-        fixedOverflowWidgets: true, // the window around it clips
-        fontFamily: 'var(--font-mono)',
-        fontSize: 14,
-      });
-      view.onDidChangeCursorPosition(({ position }) =>
-        report.current.onCaret(position.lineNumber, position.column),
-      );
-      document.fonts.ready.then(() => api.editor.remeasureFonts());
-      const themes = new MutationObserver(() => api.editor.setTheme(siteTheme()));
-      themes.observe(document.documentElement, { attributeFilter: ['class'] });
-      // A phone has no width to spare for the minimap.
-      const wide = matchMedia('(min-width: 768px)');
-      const fitMinimap = () => view.updateOptions({ minimap: { enabled: wide.matches } });
-      fitMinimap();
-      wide.addEventListener('change', fitMinimap);
-      setEditor({ api, view });
-      end = () => {
-        wide.removeEventListener('change', fitMinimap);
-        themes.disconnect();
-        view.dispose();
-        for (const model of models.current.values()) model.dispose();
-        models.current.clear();
-        viewStates.current.clear();
-        shown.current = undefined;
-      };
-    });
+    monaco
+      .then((api) => {
+        if (ended || !host.current) return;
+        const view = api.editor.create(host.current, {
+          model: null,
+          theme: siteTheme(),
+          ariaLabel: 'Peeper code. Press Escape, then Tab, to leave the editor.',
+          editContext: false, // a real textarea: the site's key shortcuts skip those, not Monaco's div
+          automaticLayout: true,
+          fixedOverflowWidgets: true, // the window around it clips
+          fontFamily: 'var(--font-mono)',
+          fontSize: 14,
+        });
+        view.onDidBlurEditorWidget(() => view.updateOptions({ tabFocusMode: false }));
+        view.onDidChangeCursorPosition(({ position }) => {
+          view.updateOptions({ tabFocusMode: false });
+          report.current.onCaret(position.lineNumber, position.column);
+        });
+        document.fonts.ready.then(() => api.editor.remeasureFonts());
+        const themes = new MutationObserver(() => api.editor.setTheme(siteTheme()));
+        themes.observe(document.documentElement, { attributeFilter: ['class'] });
+        // A phone has no width to spare for the minimap.
+        const wide = matchMedia('(min-width: 768px)');
+        const fitMinimap = () => view.updateOptions({ minimap: { enabled: wide.matches } });
+        fitMinimap();
+        wide.addEventListener('change', fitMinimap);
+        setEditor({ api, view });
+        end = () => {
+          wide.removeEventListener('change', fitMinimap);
+          themes.disconnect();
+          view.dispose();
+          for (const model of models.current.values()) model.dispose();
+          models.current.clear();
+          viewStates.current.clear();
+          shown.current = undefined;
+        };
+      })
+      .catch(() => setFailed(true));
     return () => end();
   }, []);
 
@@ -208,5 +214,37 @@ export function Editor({
     }
   }, [editor, entries]);
 
-  return <div ref={host} className="min-h-0 flex-1" />;
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: only hears keys the editor inside it let go
+    <div
+      // Tab indents here, so a keyboard needs a way out: the next Tab leaves after an Escape that
+      // gets this far. One Monaco uses, to close a suggestion or a selection, stops inside it.
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') editor?.view.updateOptions({ tabFocusMode: true });
+      }}
+      className="relative flex min-h-0 flex-1 flex-col"
+    >
+      <div ref={host} className="min-h-0 flex-1" />
+      {/* Monaco is heavy, so until it comes the code shows as text, and stays if it never does. */}
+      {!editor && (
+        <div className="absolute inset-0 overflow-auto bg-fd-card p-4 font-mono text-sm">
+          <p role="status" className="mb-3 font-sans text-xs text-fd-muted-foreground">
+            {failed
+              ? 'The editor could not load, so this code cannot be edited. '
+              : 'Loading the editor…'}
+            {failed && (
+              <button
+                type="button"
+                onClick={() => location.reload()}
+                className="underline underline-offset-4 hover:text-fd-foreground"
+              >
+                Reload
+              </button>
+            )}
+          </p>
+          <pre>{files[active]}</pre>
+        </div>
+      )}
+    </div>
+  );
 }

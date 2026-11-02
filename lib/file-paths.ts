@@ -5,6 +5,17 @@ export const MAIN = `main${EXTENSION}`;
 
 export const MODULE_PATH = /^[A-Za-z_]\w*(\/[A-Za-z_]\w*)*$/; // what an import can name
 
+/**
+ * The files of a share link's `hash`, or nothing if it has no `MAIN`. A link can be edited by
+ * hand, so any name the file tree could not make itself is left out.
+ */
+export function sharedFiles(hash: string) {
+  const usable = ([name]: [string, string]) =>
+    name.endsWith(EXTENSION) && MODULE_PATH.test(name.slice(0, -EXTENSION.length));
+  const files = Object.fromEntries([...new URLSearchParams(hash)].filter(usable));
+  return MAIN in files ? files : undefined;
+}
+
 export function parentOf(path: string) {
   return path.split('/').slice(0, -1).join('/');
 }
