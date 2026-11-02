@@ -2,16 +2,20 @@
 import { shikiToMonaco } from '@shikijs/monaco';
 import type * as Monaco from 'monaco-editor';
 import { useEffect, useRef, useState } from 'react';
+import type { HighlighterCore } from 'shiki/core';
+import { CodeTokens } from '@/components/code-card';
 import type { Entry } from '@/lib/checker';
-import { highlighter } from '@/lib/highlight';
+import { CODE_THEME } from '@/lib/code-theme';
+import { languageOf, STARTING_CODE } from '@/lib/file-paths';
+import { codeTokens, highlighter, type Token } from '@/lib/highlight';
 
 const LANGUAGE = 'peeper';
 const THEMES = { light: 'peeper-light', dark: 'peeper-dark' };
 
 // The site's code colors on `--color-fd-card`, as Monaco takes only hex.
 const COLORS = {
-  light: { base: 'github-light', background: '#edf3f1', lineHighlight: '#0000000a' },
-  dark: { base: 'github-dark', background: '#0e1015', lineHighlight: '#ffffff0a' },
+  light: { background: '#edf3f1', lineHighlight: '#0000000a' },
+  dark: { background: '#0e1015', lineHighlight: '#ffffff0a' },
 };
 
 const SEVERITIES = { error: 'Error', warning: 'Warning', info: 'Info', hint: 'Hint' } as const;
@@ -31,8 +35,8 @@ async function setUpMonaco() {
   const api: typeof Monaco = await import('monaco-editor/esm/vs/editor/edcore.main.js');
   const shiki = await highlighter;
   for (const [mode, name] of Object.entries(THEMES) as ['light' | 'dark', string][]) {
-    const { base, background, lineHighlight } = COLORS[mode];
-    const theme = shiki.getTheme(base);
+    const { background, lineHighlight } = COLORS[mode];
+    const theme = shiki.getTheme(CODE_THEME[mode]);
     await shiki.loadTheme({
       ...theme,
       name,
@@ -47,6 +51,7 @@ async function setUpMonaco() {
     });
   }
   api.languages.register({ id: LANGUAGE });
+  api.languages.register({ id: 'toml' });
   api.languages.setLanguageConfiguration(LANGUAGE, {
     comments: { lineComment: '//', blockComment: ['/*', '*/'] },
     brackets: [
@@ -67,6 +72,46 @@ async function setUpMonaco() {
   });
   shikiToMonaco(shiki, api as Parameters<typeof shikiToMonaco>[1]);
   return api;
+}
+
+/** `text` just where Monaco will draw it, so that the editor arriving does not show. */
+function CodePreview({
+  file,
+  text,
+  startingLines,
+}: {
+  file: string;
+  text: string;
+  startingLines: Token[][];
+}) {
+  const [shiki, setShiki] = useState<HighlighterCore>();
+  useEffect(() => {
+    highlighter.then(setShiki);
+  }, []);
+  const lines =
+    text === STARTING_CODE
+      ? startingLines
+      : shiki
+        ? codeTokens(shiki, text, languageOf(file))
+        : text.split('\n').map((content) => [{ content, light: 'inherit', dark: 'inherit' }]);
+  return (
+    <pre className="w-max min-w-full font-mono text-sm leading-[19px] [font-feature-settings:'calt'_0,'liga'_0]">
+      {lines.map((tokens, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: a line has no identity but its place
+        <div key={index} className="flex h-[19px]">
+          <span
+            aria-hidden
+            className="w-[42px] shrink-0 select-none text-right text-fd-muted-foreground/50"
+          >
+            {index + 1}
+          </span>
+          <code className="ml-[26px]">
+            <CodeTokens tokens={tokens} />
+          </code>
+        </div>
+      ))}
+    </pre>
+  );
 }
 
 function siteTheme() {
@@ -103,12 +148,14 @@ function marker(api: typeof Monaco, { severity, code, message, place, related }:
 export function Editor({
   files,
   active,
+  startingLines,
   entries,
   onEdit,
   onCaret,
 }: {
   files: Record<string, string>;
   active: string;
+  startingLines: Token[][]; // `STARTING_CODE`, colored by the server for the first paint
   entries: Entry[];
   onEdit: (file: string, text: string) => void;
   onCaret: (line: number, column: number) => void;
@@ -121,6 +168,7 @@ export function Editor({
   const models = useRef(new Map<string, Monaco.editor.ITextModel>());
   const viewStates = useRef(new Map<string, Monaco.editor.ICodeEditorViewState | null>());
   const [failed, setFailed] = useState(false); // Monaco did not load
+  const [painted, setPainted] = useState(false); // Monaco has drawn the code
   const shown = useRef<string>(undefined);
   // The latest callbacks: the editor outlives the render that made it.
   const report = useRef({ onEdit, onCaret });
@@ -184,7 +232,7 @@ export function Editor({
     }
     for (const [file, text] of Object.entries(files)) {
       if (models.current.has(file)) continue;
-      const model = api.editor.createModel(text, LANGUAGE, api.Uri.file(file));
+      const model = api.editor.createModel(text, languageOf(file), api.Uri.file(file));
       model.updateOptions({ tabSize: 4, insertSpaces: true });
       model.onDidChangeContent(() => report.current.onEdit(file, model.getValue()));
       models.current.set(file, model);
@@ -196,6 +244,7 @@ export function Editor({
     const kept = viewStates.current.get(active);
     if (kept) view.restoreViewState(kept);
     shown.current = active;
+    requestAnimationFrame(() => setPainted(true)); // after Monaco's own frame for the new model
     const caret = view.getPosition();
     if (caret) report.current.onCaret(caret.lineNumber, caret.column);
     if (before) view.focus();
@@ -226,9 +275,12 @@ export function Editor({
     >
       <div ref={host} className="min-h-0 flex-1" />
       {/* Monaco is heavy, so until it comes the code shows as text, and stays if it never does. */}
-      {!editor && (
-        <div className="absolute inset-0 overflow-auto bg-fd-card p-4 font-mono text-sm">
-          <p role="status" className="mb-3 font-sans text-xs text-fd-muted-foreground">
+      {!painted && (
+        <div className="absolute inset-0 overflow-auto bg-fd-card">
+          <p
+            role="status"
+            className={failed ? 'p-4 font-sans text-xs text-fd-muted-foreground' : 'sr-only'}
+          >
             {failed
               ? 'The editor could not load, so this code cannot be edited. '
               : 'Loading the editor…'}
@@ -242,7 +294,7 @@ export function Editor({
               </button>
             )}
           </p>
-          <pre>{files[active]}</pre>
+          <CodePreview file={active} text={files[active]} startingLines={startingLines} />
         </div>
       )}
     </div>

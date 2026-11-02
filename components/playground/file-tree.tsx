@@ -4,10 +4,8 @@ import {
   ChevronRight,
   CopyMinus,
   FilePlus,
-  FileText,
   Folder,
   FolderInput,
-  FolderOpen,
   FolderPlus,
   type LucideIcon,
   MoreHorizontal,
@@ -18,6 +16,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import Image from 'next/image';
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -31,12 +30,16 @@ import { cn } from '@/lib/cn';
 import {
   baseName,
   EXTENSION,
+  folderIcon,
+  isFixed,
   isInside,
-  MAIN,
+  MANIFEST,
   MODULE_PATH,
   parentOf,
   pathIn,
   plannedMoves,
+  SOURCE,
+  STARTING_FOLDER_ICONS,
   topMost,
 } from '@/lib/file-paths';
 
@@ -66,9 +69,9 @@ interface Naming {
   renaming?: string;
 }
 
-/** The rows that show: in a folder its folders, then its files, and nothing in a shut folder. */
+/** The project folder, then in each folder its folders and files, and nothing in a shut one. */
 function visibleRows(names: string[], folders: string[], shut: string[]) {
-  const rows: Row[] = [];
+  const rows: Row[] = [{ path: '', depth: 0, folder: true }]; // the project folder
   function addFolder(parent: string, depth: number) {
     for (const path of folders) {
       if (parentOf(path) !== parent) continue;
@@ -79,7 +82,7 @@ function visibleRows(names: string[], folders: string[], shut: string[]) {
       if (parentOf(path) === parent) rows.push({ path, depth, folder: false });
     }
   }
-  addFolder('', 0);
+  if (!shut.includes('')) addFolder('', 1);
   return rows;
 }
 
@@ -216,12 +219,37 @@ function ActionMenu({
   );
 }
 
+/** The picture of a row, which the row's name already says for a screen reader. */
+function RowIcon({ src, className }: { src: string; className?: string }) {
+  return (
+    <Image
+      src={src}
+      alt=""
+      width={16}
+      height={16}
+      loading="eager"
+      className={cn('shrink-0', className)}
+    />
+  );
+}
+
+/** Komma's two TOML icons in one, as the T must change with the site's light or dark mode. */
+function TomlIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" className="ml-4 size-4 shrink-0">
+      <path className="fill-[#455a64] dark:fill-[#cfd8dc]" d="M4 6V4h8v2H9v7H7V6z" />
+      <path fill="#ef5350" d="M4 1v1H2v12h2v1H1V1zm8 0v1h2v12h-2v1h3V1z" />
+    </svg>
+  );
+}
+
 /**
  * The program's files by folder. On a large screen it stays beside the code, with a right-click
  * menu, dragging and Ctrl or Shift to select. A phone has none of those, so it opens over the code
  * when `browsing`, with a menu on each row and a mode for selecting.
  */
 export function FileTree({
+  project,
   names,
   folders,
   active,
@@ -233,6 +261,7 @@ export function FileTree({
   onDelete,
   onStopBrowsing,
 }: {
+  project: string; // the name the project folder shows
   names: string[]; // sorted
   folders: string[]; // sorted, and all of them
   active: string;
@@ -249,12 +278,20 @@ export function FileTree({
   const [selecting, setSelecting] = useState(false); // a phone's way to choose several
   const [menu, setMenu] = useState<OpenMenu>();
   const [naming, setNaming] = useState<Naming>();
-  const [dropFolder, setDropFolder] = useState<string>(); // the empty one is the top
+  const [dropFolder, setDropFolder] = useState<string>();
+  const [folderIcons, setFolderIcons] = useState(STARTING_FOLDER_ICONS);
   const [refused, setRefused] = useState<string>(); // why this can't be dropped here
   const selectedFrom = useRef<string>(undefined); // where a Shift range starts
   const dragged = useRef<string[]>([]);
   const openOnDrag = useRef<ReturnType<typeof setTimeout>>(undefined);
   const rows = visibleRows(names, folders, shut);
+
+  useEffect(() => {
+    fetch('/file-icons/names.json')
+      .then((reply) => reply.json())
+      .then((icons) => setFolderIcons(new Map(Object.entries(icons))))
+      .catch(() => {}); // only a picture: folders stay plain
+  }, []);
 
   function plan(paths: string[], folder: string) {
     const moves = topMost(paths).map((path): [string, string] => [
@@ -271,8 +308,9 @@ export function FileTree({
   }
 
   function startNaming(next: Naming) {
-    setShut(shut.filter((path) => path !== next.parent && !isInside(next.parent, path)));
-    setNaming(next);
+    const parent = next.parent || SOURCE; // only `SOURCE` holds modules
+    setShut(shut.filter((path) => path && path !== parent && !isInside(parent, path)));
+    setNaming({ ...next, parent });
   }
 
   function pressRow(event: MouseEvent | KeyboardEvent, { path, folder }: Row) {
@@ -313,7 +351,7 @@ export function FileTree({
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       pressRow(event, row);
-    } else if (event.key === 'F2' && row.path !== MAIN) {
+    } else if (event.key === 'F2' && !isFixed(row.path)) {
       startNaming({ parent: parentOf(row.path), folder: row.folder, renaming: row.path });
     } else if (event.key === 'Delete') {
       openRowMenu(left, top, row, true);
@@ -346,7 +384,7 @@ export function FileTree({
 
   function dropFolderOf(event: DragEvent) {
     const row = (event.target as Element).closest('[data-drop]');
-    return row?.getAttribute('data-drop') ?? '';
+    return row?.getAttribute('data-drop') || SOURCE;
   }
 
   function dragOver(event: DragEvent) {
@@ -413,15 +451,15 @@ export function FileTree({
   function menuContents(open: OpenMenu) {
     const { paths, folder, arming, choosingFolder } = open;
     const close = () => setMenu(undefined);
-    const removable = paths.filter((path) => path !== MAIN);
+    const removable = paths.filter((path) => !isFixed(path));
     if (choosingFolder) {
-      return ['', ...folders].map((target) => {
+      return folders.map((target) => {
         const planned = plan(paths, target);
         return (
           <MenuItem
             key={target}
             icon={Folder}
-            label={target ? `${target}/` : 'Top of the program'}
+            label={`${target}/`}
             disabled={typeof planned === 'string' || planned.size === 0}
             title={typeof planned === 'string' ? planned : undefined}
             onChoose={() => {
@@ -455,7 +493,7 @@ export function FileTree({
             />
           </>
         )}
-        {paths.length === 1 && paths[0] !== MAIN && (
+        {paths.length === 1 && !isFixed(paths[0]) && (
           <MenuItem
             icon={Pencil}
             label="Rename"
@@ -568,17 +606,12 @@ export function FileTree({
           if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropFolder(undefined);
         }}
         onDrop={drop}
-        className={cn(
-          'min-h-0 flex-1 overflow-auto rounded p-2 outline-none',
-          dropFolder === '' && 'bg-brand/10',
-        )}
+        className="min-h-0 flex-1 overflow-auto rounded p-2 outline-none"
       >
-        {naming?.parent === '' && !naming.renaming && namingRow(0)}
         {rows.flatMap((row) => {
           const { path, depth, folder } = row;
           const isShut = shut.includes(path);
           const isRenaming = naming?.renaming === path;
-          const FolderIcon = isShut ? Folder : FolderOpen;
           const inDrop = dropFolder && (path === dropFolder || isInside(path, dropFolder));
           const rowItem = (
             <div
@@ -595,13 +628,13 @@ export function FileTree({
                 <div
                   role="treeitem"
                   tabIndex={0}
-                  title={path}
+                  title={path || project}
                   style={{ paddingLeft: 4 + depth * 12 }}
                   data-drop={folder ? path : parentOf(path)}
                   aria-selected={selected.includes(path)}
                   aria-expanded={folder ? !isShut : undefined}
                   aria-current={path === active}
-                  draggable={path !== MAIN}
+                  draggable={!isFixed(path)}
                   onDragStart={(event) => startDrag(event, path)}
                   onDragEnd={endDrag}
                   onClick={(event) => {
@@ -631,17 +664,19 @@ export function FileTree({
                         aria-hidden
                         className={cn('size-3 shrink-0 transition', !isShut && 'rotate-90')}
                       />
-                      <FolderIcon aria-hidden className="size-3.5 shrink-0" />
+                      <RowIcon src={folderIcon(path, isShut, folderIcons)} />
                     </>
+                  ) : path === MANIFEST ? (
+                    <TomlIcon />
                   ) : (
-                    <FileText aria-hidden className="ml-4 size-3.5 shrink-0" />
+                    <RowIcon src="/icon.svg" className="ml-4" />
                   )}
-                  <span className="truncate">{baseName(path)}</span>
+                  <span className="truncate">{path ? baseName(path) : project}</span>
                 </div>
               )}
               <button
                 type="button"
-                aria-label={`Actions for ${path}`}
+                aria-label={`Actions for ${path || project}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   openRowMenu(0, 0, row);

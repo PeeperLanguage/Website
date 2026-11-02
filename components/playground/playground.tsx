@@ -25,23 +25,23 @@ import { FileTree } from '@/components/playground/file-tree';
 import { TerminalText } from '@/components/playground/terminal-text';
 import { CHECKER_FAILED, type CheckReply, type CheckRequest, type RunReply } from '@/lib/checker';
 import { cn } from '@/lib/cn';
-import { allFolders, baseName, isInside, MAIN, sharedFiles } from '@/lib/file-paths';
+import {
+  allFolders,
+  baseName,
+  isInside,
+  MAIN,
+  MANIFEST,
+  projectName,
+  STARTING_CODE,
+  STARTING_MANIFEST,
+  sharedFiles,
+} from '@/lib/file-paths';
+import type { Token } from '@/lib/highlight';
 
 const QUIET_MS = 200; // after the last key, so typing never waits on a check
 const LIMIT_MS = 10_000; // a run past this is ended, as a loop may never finish
 const COPIED_MS = 1500; // how long a button says it copied
 const VERSION = '0.2.0'; // shortcut: set by hand, update it with `peeper-check.wasm`
-
-const STARTING_CODE = `// Edit this, then press Run.
-fn square(x: i64) -> i64 {
-    return x * x;
-}
-
-fn main() {
-    let total = square(4);
-    println("total:", total);
-}
-`;
 
 function newWorker() {
   return new Worker(new URL('../../lib/check-worker.ts', import.meta.url));
@@ -255,8 +255,11 @@ function FileTabs({
 }
 
 /** Peeper's playground: edit files, with what the checker finds underlined, and run them. */
-export function Playground() {
-  const [files, setFiles] = useState<Record<string, string>>({ [MAIN]: STARTING_CODE });
+export function Playground({ startingLines }: { startingLines: Token[][] }) {
+  const [files, setFiles] = useState<Record<string, string>>({
+    [MANIFEST]: STARTING_MANIFEST,
+    [MAIN]: STARTING_CODE,
+  });
   const [linksLoaded, setLinksLoaded] = useState(0);
   const [active, setActive] = useState(MAIN);
   const [tabs, setTabs] = useState([MAIN]); // the open files
@@ -412,7 +415,7 @@ export function Playground() {
             type="button"
             onClick={runCode}
             disabled={running}
-            className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand to-brand-2 px-3 py-1.5 font-sans text-xs font-semibold text-on-brand transition hover:opacity-85 disabled:opacity-50"
+            className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-fd-foreground px-3 py-1.5 font-sans text-xs font-semibold text-fd-background transition hover:opacity-85 disabled:opacity-50"
           >
             <Play aria-hidden className="size-3 fill-current" />
             Run
@@ -428,6 +431,7 @@ export function Playground() {
           <div className="relative flex min-h-0 flex-1">
             <FileTree
               key={linksLoaded}
+              project={projectName(files[MANIFEST])}
               names={names}
               folders={shownFolders}
               active={active}
@@ -466,6 +470,7 @@ export function Playground() {
                 key={linksLoaded}
                 files={files}
                 active={active}
+                startingLines={startingLines}
                 entries={entries}
                 onEdit={(file, text) => setFiles((now) => ({ ...now, [file]: text }))}
                 onCaret={(line, column) => setCaret({ line, column })}

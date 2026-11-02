@@ -3,6 +3,7 @@ import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
 import { applyMdxPreset } from 'fumadocs-mdx/config';
 import { defineDocs } from 'fumadocs-mdx/macro';
+import { CODE_THEME } from './code-theme';
 import { peeper } from './peeper';
 import { docsRoute } from './shared';
 
@@ -12,7 +13,7 @@ const docs = defineDocs({
     schema: pageSchema,
     mdxOptions: applyMdxPreset({
       rehypeCodeOptions: {
-        themes: { light: 'github-light', dark: 'github-dark' },
+        themes: CODE_THEME,
         langs: [peeper],
       },
     }),
