@@ -8,7 +8,7 @@ import { SectionHeading } from '@/components/home/section-heading';
 import { Window } from '@/components/window';
 import type { Token } from '@/lib/highlight/highlight';
 import { Choices, Command } from './commands';
-import { ways } from './install-steps';
+import { platforms, ways } from './install-steps';
 import { SystemIcon } from './system-icons';
 
 /** The two ways to get Peeper, as commands with a copy button, colored by `commands`. */
@@ -18,8 +18,8 @@ export function GetStarted({ commands }: { commands: Record<string, Token[]> }) 
   return (
     <Section>
       <SectionHeading eyebrow="Get started" title="Install it, or build it yourself">
-        The installer puts a prebuilt compiler and its own LLVM toolchain in one folder, a download
-        of up to 190 MB. Building from source takes Rust and four commands.
+        The installer puts a prebuilt compiler and its own LLVM toolchain in one folder. Building
+        from source takes Rust and four commands.
       </SectionHeading>
       <Reveal className="mx-auto mt-12 max-w-3xl">
         <PillTabs
@@ -48,7 +48,7 @@ export function GetStarted({ commands }: { commands: Record<string, Token[]> }) 
             </Window>
           </div>
           <ul className="mt-6 flex flex-wrap justify-center gap-2">
-            {way.platforms.map(({ system, processor }) => (
+            {platforms.map(({ system, processor }) => (
               <li key={`${system} ${processor}`}>
                 <Chip className="font-mono">
                   <SystemIcon system={system} className="size-3.5 shrink-0" />
