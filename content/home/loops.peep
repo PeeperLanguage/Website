@@ -1,0 +1,15 @@
+fn main() {
+    print("step:");
+    for v in 0..10:3 { print("", v); }
+    println();
+
+    print("down:");
+    for v in 5..=0:2 { print("", v); }
+    println();
+
+    let mut n = 1;
+    for n < 100 {                   // while `n < 100`
+        n = n * 3;
+    }
+    println("while:", n);
+}

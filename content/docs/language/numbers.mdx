@@ -31,6 +31,8 @@ let signed: i16 = small;
 let unsigned: u32 = small;
 ```
 
+<Terminal run="auto">
+
 ```peeper title="examples/02_numbers.peep"
 // Numbers: signed `i` and unsigned `u` integers of any width from 1 to 2^23
 // bits (`i8`, `u24`, `i200`, ...), `usize` as wide as a pointer, and `f32`
@@ -69,15 +71,7 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-constants: 128 1267650600228229401496703205376 16777215 0.5
-widened: 200 200 0.5
-arithmetic: 20 -3 34 3 2 -17
-bitwise: 1 273 16 -18 68 8
-compare: true false true false
-wide: -1 340282366920938463463374607431768211455 4096
-floats: 0.3333333333333333 0.30000000000000004 1e+16 0.0025
-```
+</Terminal>
 
 ## Casts
 
@@ -89,7 +83,19 @@ floats: 0.3333333333333333 0.30000000000000004 1e+16 0.0025
 
  A narrowing without `as` is an error, and the error offers the cast as a fix:
 
-<Terminal output="narrow" />
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let big: i32 = 300;
+    let small: u8 = big;
+    println(small);
+}
+```
+
+</Terminal>
+
+<Terminal run="auto">
 
 ```peeper title="examples/03_casts.peep"
 // Casts: `value as T` turns any number or `bool` into any number type. An
@@ -113,9 +119,4 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-integers: 44 4294967295 -1
-floats to integers: -2 0 2147483647 0
-integers to floats: 3.5 0.1
-bools: 1 0
-```
+</Terminal>

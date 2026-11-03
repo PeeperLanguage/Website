@@ -1,0 +1,14 @@
+fn bump(values: &mut [3]i32) {      // changes the caller's array
+    for value in values {
+        value.* = value.* + 1;
+    }
+}
+
+fn main() {
+    let a = [3]i32{1, 2, 3};
+    let mut c = a;                  // a copy: `a` stays as it is
+    c[0] = 9;
+    bump(&mut c);
+    println("a:", a, "c:", c, "len:", c.len);
+    println("spread:", [_]i32{a..., 0, a...});
+}

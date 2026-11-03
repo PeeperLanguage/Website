@@ -1,0 +1,11 @@
+struct Point { x: i32, y: i32 }
+
+fn distance(a: &Point, b: &Point) -> i32 {
+    return (b.x - a.x) + (b.y - a.y);
+}
+
+fn main() {
+    let start = Point.{ x = 1, y = 2 };
+    let end: Point = .{ x = 4, y = 6 };
+    println("distance:", distance(&start, &end));
+}

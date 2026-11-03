@@ -14,6 +14,8 @@ description: Unchecked pointers for low-level code, and calling the C library.
 
  Any `*T` passes as a `rawptr` without a cast.
 
+<Terminal run="auto">
+
 ```peeper title="examples/13_raw_pointers.peep"
 // Raw pointers: `*T` points to a `T`, `rawptr` to anything. Nothing checks
 // them; they are for C and low-level code. `@x` takes an address, `.*`
@@ -57,9 +59,7 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-n: 8 total: 8 heap: 34
-```
+</Terminal>
 
 ## C functions
 
@@ -72,6 +72,8 @@ n: 8 total: 8 heap: 34
 #[extern("strlen")]
 fn length(text: cstr) -> usize;
 ```
+
+<Terminal>
 
 ```peeper title="examples/17_c_functions.peep"
 // C functions: `#[extern("name")]` declares a function the C library or the
@@ -96,7 +98,9 @@ fn main() {
 }
 ```
 
-```txt title="Output"
+</Terminal>
+
+```terminal title="peeper run"
 abs: 42 strlen: 6 toupper: 65
 hello
 ```

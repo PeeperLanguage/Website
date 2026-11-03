@@ -1,0 +1,9 @@
+// Edit this, then press Run.
+fn square(x: i64) -> i64 {
+    return x * x;
+}
+
+fn main() {
+    let total = square(4);
+    println("total:", total);
+}

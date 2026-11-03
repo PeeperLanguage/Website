@@ -12,6 +12,13 @@ Each file of a project is a module, and the `src` folder holds them.
    stays inside its module.
  - The core library is the package `core`.
 
+<Terminal run="auto">
+
+```toml title="examples/modules/peeper.toml"
+name = "modules"
+build = "program"
+```
+
 ```peeper title="examples/modules/src/geometry.peep"
 // Exported: the names start with an uppercase letter.
 const Side = 21;
@@ -59,13 +66,24 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-perimeter: 84
-area: 126
-square: 441
-allocated and freed 16 bytes
-```
+</Terminal>
 
 Using a lowercase name from another module is an error:
 
-<Terminal output="private" />
+<Terminal run="auto">
+
+```peeper
+import "playground:geometry";
+
+fn main() {
+    println(geometry::scale(2));
+}
+```
+
+```peeper title="src/geometry.peep"
+fn scale(value: i64) -> i64 {
+    return value * 2;
+}
+```
+
+</Terminal>

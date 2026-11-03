@@ -1,18 +1,20 @@
 'use client';
-import { CornerDownRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useState } from 'react';
-import type { Token } from '@/lib/highlight';
-import { CodeLines } from './code-lines';
+import { CodeLines } from '@/components/code/code-lines';
+import { ProgramTerminal } from '@/components/terminal/program-terminal';
+import { runCommand } from '@/lib/compiler/project';
+import type { Token } from '@/lib/highlight/highlight';
+import { Section } from './page-width';
 import { PillTabs } from './pill-tabs';
 import { SectionHeading } from './section-heading';
 
-/** A sample program, highlighted, and what it prints. */
+/** A sample program, highlighted, and the project to run it as. */
 export interface Sample {
   name: string;
   lines: Token[][];
-  output: string;
+  files: Record<string, string>;
 }
 
 /** A few short programs, one tab each, with what each prints. */
@@ -20,7 +22,7 @@ export function Tour({ samples }: { samples: Sample[] }) {
   const [active, setActive] = useState(0);
   const sample = samples[active];
   return (
-    <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+    <Section>
       <SectionHeading eyebrow="The language" title="Small, explicit, readable">
         One loop keyword, structs that move, arrays that copy, and references you write out. Every
         sample here runs as shown.
@@ -42,19 +44,8 @@ export function Tour({ samples }: { samples: Sample[] }) {
               transition={{ duration: 0.25 }}
               className="mt-8"
             >
-              <CodeLines
-                title="main.peep"
-                lines={sample.lines}
-                step={0.025}
-                footer={
-                  <div className="flex gap-2 border-t bg-fd-background/60 px-4 py-3 font-mono text-[13px] leading-6">
-                    <CornerDownRight aria-hidden className="mt-1 size-3.5 shrink-0 text-brand" />
-                    <span className="whitespace-pre-wrap text-fd-muted-foreground">
-                      {sample.output}
-                    </span>
-                  </div>
-                }
-              />
+              <CodeLines title="src/main.peep" lines={sample.lines} step={0.025} />
+              <ProgramTerminal command={runCommand} files={sample.files} className="mt-4" />
             </motion.div>
           </AnimatePresence>
         </PillTabs>
@@ -69,6 +60,6 @@ export function Tour({ samples }: { samples: Sample[] }) {
           .
         </p>
       </div>
-    </section>
+    </Section>
   );
 }

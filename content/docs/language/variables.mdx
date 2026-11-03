@@ -15,7 +15,17 @@ let mut total: i64 = 0;
 
 Changing a variable declared without `mut` is an error:
 
-<Terminal output="notMut" />
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let count = 1;
+    count = 2;
+    println(count);
+}
+```
+
+</Terminal>
 
 A `let` without a value is set by its first assignment. It must be set once
  on every path before it is read:
@@ -33,10 +43,28 @@ if value > 0 {
 
 If one path can skip the assignment, the compiler shows that path:
 
-<Terminal output="unset" />
+<Terminal run="auto">
+
+```peeper
+fn pick(flag: bool) -> i32 {
+    let value: i32;
+    if flag {
+        value = 1;
+    }
+    return value;
+}
+
+fn main() {
+    println(pick(true));
+}
+```
+
+</Terminal>
 
 A block can declare names of its own, which hide outer names until the block
  ends. A parameter can be `mut` too.
+
+<Terminal run="auto">
 
 ```peeper title="examples/04_variables.peep"
 // Variables: `let` names a value and `mut` lets it change. A `let` without
@@ -75,16 +103,14 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-total: 110 fixed: 5
-signs: -1 0 1
-next: 6
-```
+</Terminal>
 
 ## Conditions
 
  `if`, `else if` and `else` take a `bool`. `&&` and `||` skip their right side
  when the left side already decides the answer, and `!` negates.
+
+<Terminal run="auto">
 
 ```peeper title="examples/05_conditions.peep"
 // Conditions: `if`, `else if` and `else` take a `bool`. `&&` and `||` skip
@@ -116,13 +142,4 @@ fn main() {
 }
 ```
 
-```txt title="Output"
--3 is negative
-0 is zero
-8 is positive
-and: false
-or: true
-  noisy runs
-both: true
-not: true
-```
+</Terminal>

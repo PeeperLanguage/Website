@@ -1,30 +1,35 @@
-'use client';
-import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/cn';
+import { Reveal } from './reveal';
+
+/** The big title of a part of the home page. */
+export function SectionTitle({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <h2 className={cn('font-display text-4xl font-bold text-balance sm:text-5xl', className)}>
+      {children}
+    </h2>
+  );
+}
 
 /** A section's small label, title and lead, rising in as it scrolls into view. */
 export function SectionHeading({
   eyebrow,
   title,
+  alignLeft = false,
   children,
 }: {
   eyebrow: string;
   title: ReactNode;
+  alignLeft?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
-      className="mx-auto max-w-2xl text-center"
-    >
+    <Reveal className={cn('max-w-2xl', !alignLeft && 'mx-auto text-center')}>
       <p className="font-mono text-xs font-medium tracking-widest text-brand uppercase">
         {eyebrow}
       </p>
-      <h2 className="mt-3 font-display text-4xl font-bold text-balance sm:text-5xl">{title}</h2>
+      <SectionTitle className="mt-3">{title}</SectionTitle>
       {children && <p className="mt-4 text-fd-muted-foreground text-pretty">{children}</p>}
-    </motion.div>
+    </Reveal>
   );
 }

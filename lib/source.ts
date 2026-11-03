@@ -3,8 +3,9 @@ import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
 import { applyMdxPreset } from 'fumadocs-mdx/config';
 import { defineDocs } from 'fumadocs-mdx/macro';
-import { CODE_THEME } from './code-theme';
-import { peeper } from './peeper';
+import { remarkTerminal } from '../components/docs/remark-terminal';
+import { CODE_THEME } from './highlight/code-theme';
+import { peeper } from './highlight/peeper';
 import { docsRoute } from './shared';
 
 const docs = defineDocs({
@@ -12,6 +13,7 @@ const docs = defineDocs({
   docs: {
     schema: pageSchema,
     mdxOptions: applyMdxPreset({
+      remarkPlugins: [remarkTerminal],
       rehypeCodeOptions: {
         themes: CODE_THEME,
         langs: [peeper],

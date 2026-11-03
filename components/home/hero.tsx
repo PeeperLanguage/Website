@@ -1,18 +1,20 @@
 'use client';
-import { ArrowRight, BookOpen, ChevronRight } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import Link from 'next/link';
 import { type CSSProperties, useEffect, useState } from 'react';
-import type { Token } from '@/lib/highlight';
-import { CodeLines } from './code-lines';
-import { Choices } from './commands';
-import { CursorMuncher } from './cursor-muncher';
-import { installChoices } from './install-steps';
-import { WaterEdge } from './pond';
-import { Window } from './window';
+import { CodeLines } from '@/components/code/code-lines';
+import { CursorMuncher } from '@/components/cursor-muncher/cursor-muncher';
+import { Choices } from '@/components/install/commands';
+import { installChoices } from '@/components/install/install-steps';
+import { WaterEdge } from '@/components/pond/pond';
+import { ProgramTerminal } from '@/components/terminal/program-terminal';
+import { runCommand } from '@/lib/compiler/project';
+import { riseEase } from '@/lib/easing';
+import type { Token } from '@/lib/highlight/highlight';
+import { PrimaryLink, SecondaryLink } from './action-link';
+import { Chip } from './chip';
+import { PageWidth } from './page-width';
 
-const command = 'peeper run src/main.peep';
-const output = 'distance: 7';
 const headline = ['Systems', 'code,'];
 const highlighted = ['checked', 'before', 'it', 'runs.'];
 
@@ -28,9 +30,12 @@ function rise(delay: number, distance: number, blur = 0) {
 /** The first screen: what Peeper is, a program, and what it prints. */
 export function Hero({
   lines,
+  files,
   commands,
 }: {
   lines: Token[][];
+  /** The project of the program in `lines`. */
+  files: Record<string, string>;
   /** The colored tokens of each install command, keyed by command. */
   commands: Record<string, Token[]>;
 }) {
@@ -38,25 +43,22 @@ export function Hero({
   const codeStart = 0.5;
   const step = 0.06;
   // The command types once the last line of code is in.
-  const typed = useTyped(command, (codeStart + lines.length * step + 0.3) * 1000, reduce);
-  const ran = typed.length === command.length;
+  const typed = useTyped(runCommand, (codeStart + lines.length * step + 0.3) * 1000, reduce);
+  const ran = typed.length === runCommand.length;
 
   return (
     // Skipped while off-screen, as its glows would go on moving where nobody can see them.
     <section className="relative isolate overflow-hidden [contain-intrinsic-size:auto_52rem] [content-visibility:auto]">
       <Backdrop />
-      <div className="mx-auto grid max-w-6xl gap-14 px-4 pt-20 pb-24 sm:px-6 md:pt-28 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-10">
+      <PageWidth className="grid gap-14 pt-20 pb-24 md:pt-28 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-10">
         <div className="min-w-0">
-          <div
-            style={rise(0, 8)}
-            className="hero-rise inline-flex items-center gap-2 rounded-full border bg-fd-card/70 px-3 py-1 text-xs font-medium text-fd-muted-foreground backdrop-blur"
-          >
+          <Chip style={rise(0, 8)} className="hero-rise font-medium">
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60 motion-reduce:animate-none" />
               <span className="relative inline-flex size-2 rounded-full bg-brand" />
             </span>
             Pre-release · the compiler is being rebuilt in Rust
-          </div>
+          </Chip>
 
           <h1 className="mt-6 font-display text-5xl font-bold sm:text-6xl lg:text-7xl">
             {[headline, highlighted].map((words, line) => (
@@ -92,61 +94,43 @@ export function Hero({
               note="install the compiler"
               choices={installChoices}
               tokens={commands}
-              title="install"
+              title="terminal"
             />
           </div>
 
           <div style={rise(0.35, 12)} className="hero-rise mt-6 flex flex-wrap items-center gap-3">
-            <Link
-              href="/docs/installation"
-              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand to-brand-2 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:shadow-brand/40 hover:brightness-110"
-            >
-              Get started
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <Link
-              href="/docs/tour"
-              className="inline-flex items-center gap-2 rounded-full border bg-fd-card/70 px-5 py-2.5 text-sm font-semibold backdrop-blur transition hover:bg-fd-accent"
-            >
+            <PrimaryLink href="/docs/installation">Get started</PrimaryLink>
+            <SecondaryLink href="/docs/tour">
               <BookOpen className="size-4" />
               Take the tour
-            </Link>
+            </SecondaryLink>
           </div>
         </div>
 
         <motion.div
           initial={{ opacity: 0, y: 30, rotateX: 8 }}
           animate={{ opacity: 1, y: 0, rotateX: 0 }}
-          transition={{ delay: 0.3, duration: 0.8, ease: [0.2, 0.7, 0.2, 1] }}
+          transition={{ delay: 0.3, duration: 0.8, ease: riseEase }}
           className="relative min-w-0 [perspective:1200px]"
         >
           <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand/25 via-brand-2/10 to-brand-3/25 blur-3xl" />
           <CursorMuncher className="right-8 w-24 sm:w-28" />
           <CodeLines title="src/main.peep" lines={lines} delay={codeStart} step={step} />
-          <Window title="terminal" className="mt-4 sm:mr-10 sm:-ml-6">
-            <div className="p-4 font-mono text-[13px] leading-6">
-              <div>
-                <ChevronRight
-                  aria-hidden
-                  className="mr-1.5 inline size-3.5 align-[-2px] text-brand"
-                />
+          <ProgramTerminal
+            className="mt-4 sm:mr-10 sm:-ml-6"
+            files={files}
+            shown={ran}
+            command={
+              <>
                 {typed}
                 {!ran && (
                   <span className="ml-px inline-block h-4 w-2 translate-y-0.5 animate-pulse bg-fd-foreground/70" />
                 )}
-              </div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: ran ? 1 : 0 }}
-                transition={{ duration: 0.3, delay: 0.25 }}
-                className="text-fd-muted-foreground"
-              >
-                {output}
-              </motion.div>
-            </div>
-          </Window>
+              </>
+            }
+          />
         </motion.div>
-      </div>
+      </PageWidth>
     </section>
   );
 }

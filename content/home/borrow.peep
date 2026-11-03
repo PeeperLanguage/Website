@@ -1,0 +1,10 @@
+fn update(target: &mut i32, value: i32) {
+    target.* = value;
+}
+
+fn main() {
+    let mut count = 1;
+    let view = &count;
+    update(&mut count, 2);
+    println("count:", view.*);
+}

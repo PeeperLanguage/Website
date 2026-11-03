@@ -116,7 +116,7 @@ html > body[data-scroll-locked] {
   }
 }
 
-/* A highlighted token's colors, from lib/highlight.ts. */
+/* A highlighted token's colors, from lib/highlight/highlight.ts. */
 .token {
   color: var(--token-light);
   font-style: var(--token-light-style, normal);
@@ -134,9 +134,19 @@ html > body[data-scroll-locked] {
 }
 
 /*
- * The water's edge, from components/home/pond.tsx. Its colors are solid mixes into the page's own
+ * The water's edge, from components/pond/pond.tsx. Its colors are solid mixes into the page's own
  * background, so shapes merge where they cross, as a silhouette does, instead of adding up.
  */
+/* All monospaced code and terminal text on the site. */
+/* The line height of the docs code blocks, so code and what it prints read alike everywhere. */
+:root {
+  --code-line: calc(13px * 20 / 14);
+}
+
+@utility code-text {
+  @apply font-mono text-[13px] leading-(--code-line);
+}
+
 .water-edge {
   --reed: color-mix(in oklab, var(--color-brand) 30%, var(--color-fd-background));
   --reed-far: color-mix(in oklab, var(--color-brand) 15%, var(--color-fd-background));
@@ -236,13 +246,5 @@ html > body[data-scroll-locked] {
     transform: none !important;
     filter: none !important;
   }
-}
-/* biome-ignore-end lint/complexity/noImportantStyles: see above */
-
-/* The avatar temporarily holds the pointer, including over links and buttons. */
-/* biome-ignore-start lint/complexity/noImportantStyles: override interactive cursor styles during the act */
-html.cursor-munched,
-html.cursor-munched * {
-  cursor: none !important;
 }
 /* biome-ignore-end lint/complexity/noImportantStyles: see above */

@@ -19,12 +19,16 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Window } from '@/components/home/window';
-import { Editor } from '@/components/playground/editor';
-import { FileTree } from '@/components/playground/file-tree';
-import { TerminalText } from '@/components/playground/terminal-text';
-import { CHECKER_FAILED, type CheckReply, type CheckRequest, type RunReply } from '@/lib/checker';
+import { useCopy } from '@/components/copy/use-copy';
+import { RanOutput, TerminalLines } from '@/components/terminal/terminal-text';
+import { Window } from '@/components/window';
 import { cn } from '@/lib/cn';
+import {
+  CHECKER_FAILED,
+  type CheckReply,
+  type CheckRequest,
+  type RunReply,
+} from '@/lib/compiler/checker';
 import {
   allFolders,
   baseName,
@@ -32,19 +36,18 @@ import {
   MAIN,
   MANIFEST,
   projectName,
-  STARTING_CODE,
   STARTING_MANIFEST,
   sharedFiles,
-} from '@/lib/file-paths';
-import type { Token } from '@/lib/highlight';
+} from '@/lib/compiler/project';
+import { Editor, type StartingCode } from './editor';
+import { FileTree } from './file-tree';
 
 const QUIET_MS = 200; // after the last key, so typing never waits on a check
 const LIMIT_MS = 10_000; // a run past this is ended, as a loop may never finish
-const COPIED_MS = 1500; // how long a button says it copied
 const VERSION = '0.2.0'; // shortcut: set by hand, update it with `peeper-check.wasm`
 
 function newWorker() {
-  return new Worker(new URL('../../lib/check-worker.ts', import.meta.url));
+  return new Worker(new URL('../../lib/compiler/check-worker.ts', import.meta.url));
 }
 
 /** What came of pressing Run: nothing yet, a run going, or how it ended. */
@@ -72,11 +75,16 @@ function OutputPane({
           {status}
         </span>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-4 font-mono text-[13px]" aria-live="polite">
+      <div className="code-text min-h-0 flex-1 overflow-auto p-4" aria-live="polite">
         {children}
       </div>
     </section>
   );
+}
+
+/** A key on the keyboard. */
+function Key({ name }: { name: string }) {
+  return <kbd className="rounded border px-1.5 py-0.5 text-xs">{name}</kbd>;
 }
 
 /** What a run found and printed, then its exit code, in the order a terminal shows them. */
@@ -104,8 +112,7 @@ function Output({ run }: { run: Run }) {
         <div className="space-y-2 text-fd-muted-foreground">
           <p>Your code runs in this page. Nothing is sent anywhere.</p>
           <p>
-            Press <kbd className="rounded border px-1.5 py-0.5 text-xs">Ctrl</kbd> +{' '}
-            <kbd className="rounded border px-1.5 py-0.5 text-xs">Enter</kbd> to run
+            Press <Key name="Ctrl" /> + <Key name="Enter" /> to run
           </p>
         </div>
       </OutputPane>
@@ -121,22 +128,14 @@ function Output({ run }: { run: Run }) {
   const passed = run.run?.exit_code === 0;
   return (
     <OutputPane status={passed ? 'Done' : 'Failed'} dot={passed ? 'bg-emerald-500' : 'bg-red-500'}>
-      {/* Not wrapped: a mark under the source must stay under what it marks. */}
       {run.diagnostics && (
         <pre className="mb-3">
-          <TerminalText text={run.diagnostics} />
+          <TerminalLines text={run.diagnostics} />
         </pre>
       )}
       {run.run && (
         <>
-          <pre className="whitespace-pre-wrap">
-            {run.run.output.map(({ stream, text }, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: each run replaces them all
-              <span key={index} className={cn(stream === 'stderr' && 'text-red-500')}>
-                {text}
-              </span>
-            ))}
-          </pre>
+          <RanOutput ran={run.run} />
           <p className="mt-2 text-fd-muted-foreground">Exited with code {run.run.exit_code}.</p>
         </>
       )}
@@ -180,21 +179,16 @@ function CopyAction({
   label: string;
   text: () => string;
 }) {
-  const [copied, setCopied] = useState<boolean>(); // unset until a copy ends
+  const { copied, copy } = useCopy();
+  const copyText = () => copy(text());
 
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(text());
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-    setTimeout(() => setCopied(undefined), COPIED_MS);
-  }
-
-  if (copied === undefined) return <Action icon={icon} label={label} onClick={copy} />;
+  if (copied === undefined) return <Action icon={icon} label={label} onClick={copyText} />;
   return (
-    <Action icon={copied ? Check : X} label={copied ? 'Copied' : 'Could not copy'} onClick={copy} />
+    <Action
+      icon={copied ? Check : X}
+      label={copied ? 'Copied' : 'Could not copy'}
+      onClick={copyText}
+    />
   );
 }
 
@@ -255,10 +249,10 @@ function FileTabs({
 }
 
 /** Peeper's playground: edit files, with what the checker finds underlined, and run them. */
-export function Playground({ startingLines }: { startingLines: Token[][] }) {
+export function Playground({ starting }: { starting: StartingCode }) {
   const [files, setFiles] = useState<Record<string, string>>({
     [MANIFEST]: STARTING_MANIFEST,
-    [MAIN]: STARTING_CODE,
+    [MAIN]: starting.code,
   });
   const [linksLoaded, setLinksLoaded] = useState(0);
   const [active, setActive] = useState(MAIN);
@@ -470,7 +464,7 @@ export function Playground({ startingLines }: { startingLines: Token[][] }) {
                 key={linksLoaded}
                 files={files}
                 active={active}
-                startingLines={startingLines}
+                starting={starting}
                 entries={entries}
                 onEdit={(file, text) => setFiles((now) => ({ ...now, [file]: text }))}
                 onCaret={(line, column) => setCaret({ line, column })}

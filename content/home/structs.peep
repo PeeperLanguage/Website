@@ -1,0 +1,14 @@
+struct Point { x: i32, y: i32 }
+struct Line { start: Point, end: Point }
+
+fn length(line: Line) -> i32 {      // takes the line, moved in
+    return line.end.x - line.start.x + line.end.y - line.start.y;
+}
+
+fn main() {
+    let start = Point.{ y = 2, x = 1 };
+    let end: Point = .{ x = 4, y = 6 };
+    let line = Line.{ start = start, end = end };
+    println("line:", line);
+    println("length:", length(line));   // `line` moves; it is unset now
+}
