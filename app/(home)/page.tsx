@@ -9,6 +9,7 @@ import { Hero } from '@/components/home/hero';
 import { shownCommands } from '@/components/home/install-steps';
 import { MotionProvider } from '@/components/home/motion-provider';
 import { Pipeline } from '@/components/home/pipeline';
+import { WaterEdge } from '@/components/home/pond';
 import { heroProgram, storyProgram, tourPrograms } from '@/components/home/programs';
 import { Tour } from '@/components/home/tour';
 import { Mascot } from '@/components/mascot';
@@ -85,7 +86,9 @@ function Closing() {
 
 function Footer() {
   return (
-    <footer className="border-t">
+    <footer className="relative border-t">
+      {/* The page ends at the water's edge it began with, on the footer's top line. */}
+      <WaterEdge className="absolute inset-x-0 bottom-full -z-10 h-84" />
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-fd-muted-foreground sm:flex-row sm:px-6">
         <div className="flex items-center gap-2">
           <Mascot className="h-5 w-[28px] shrink-0" />

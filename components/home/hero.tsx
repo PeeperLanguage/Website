@@ -8,6 +8,7 @@ import { CodeLines } from './code-lines';
 import { Choices } from './commands';
 import { CursorMuncher } from './cursor-muncher';
 import { installChoices } from './install-steps';
+import { WaterEdge } from './pond';
 import { Window } from './window';
 
 const command = 'peeper run src/main.peep';
@@ -169,16 +170,17 @@ function useTyped(text: string, startMs: number, reduce: boolean | null) {
   return text.slice(0, count);
 }
 
-/** The hero's backdrop: faded ripples and two slow, drifting glows, moved by CSS alone. */
+/**
+ * The hero's backdrop: two slow, drifting glows, moved by CSS alone, and the water's edge.
+ */
 function Backdrop() {
   return (
-    <div
-      aria-hidden="true"
-      className="absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
-    >
-      <div className="hero-ripples absolute inset-0 opacity-60" />
-      <div className="hero-glow hero-glow-brand absolute -top-88 left-[calc(10%-12rem)] size-[56rem]" />
-      <div className="hero-glow hero-glow-warm absolute -top-40 right-[calc(5%-15rem)] size-[58rem]" />
+    <div aria-hidden="true" className="absolute inset-0 -z-10">
+      <div className="absolute inset-0 [mask-image:linear-gradient(to_bottom,black_55%,transparent)]">
+        <div className="hero-glow hero-glow-brand absolute -top-88 left-[calc(10%-12rem)] size-[56rem]" />
+        <div className="hero-glow hero-glow-warm absolute -top-40 right-[calc(5%-15rem)] size-[58rem]" />
+      </div>
+      <WaterEdge className="absolute inset-0" />
     </div>
   );
 }

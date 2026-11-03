@@ -133,23 +133,20 @@ html > body[data-scroll-locked] {
   color: transparent;
 }
 
-/* Hairline rings behind the hero, spreading from where the frog sits like ripples on a pond. */
-.hero-ripples {
-  /* The frog's place: under the text on a narrow screen, beside it on a wide one. */
-  --frog: 75% 44rem;
-  background-image: repeating-radial-gradient(
-    circle at var(--frog),
-    transparent 0 47px,
-    var(--color-fd-border) 47px 48px
-  );
-  mask-image: radial-gradient(circle at var(--frog), black 15%, transparent 60%);
+/*
+ * The water's edge, from components/home/pond.tsx. Its colors are solid mixes into the page's own
+ * background, so shapes merge where they cross, as a silhouette does, instead of adding up.
+ */
+.water-edge {
+  --reed: color-mix(in oklab, var(--color-brand) 30%, var(--color-fd-background));
+  --reed-far: color-mix(in oklab, var(--color-brand) 15%, var(--color-fd-background));
+  --cattail: color-mix(in oklab, var(--color-brand-3) 46%, var(--color-fd-background));
+  --cattail-far: color-mix(in oklab, var(--color-brand-3) 24%, var(--color-fd-background));
 }
-@media (min-width: 64rem) {
-  .hero-ripples {
-    --frog: calc(50% + 28.75rem) 9.5rem;
-  }
+/* Reeds rise out of the water, so their feet fade instead of ending on the section's edge. */
+.pond-edge {
+  mask-image: linear-gradient(to top, transparent, black 26%);
 }
-
 /* The hero's words, which must not wait for the page's script. */
 @keyframes hero-rise {
   from {
