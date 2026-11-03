@@ -635,7 +635,15 @@ export function mountCursorMuncher(container: HTMLDivElement) {
       const vy = (e.clientY - lastMove.y) / dt;
       lastMove = { x: e.clientX, y: e.clientY, t: now };
       const speed = Math.hypot(vx, vy);
-      if (activeMuncher !== btn && !reduce.matches && mouse.seen && speed > 1.2 && speed < 20) {
+      // Off screen no frames run to spend a nudge: saved up, they would all land on coming back.
+      if (
+        onScreen &&
+        activeMuncher !== btn &&
+        !reduce.matches &&
+        mouse.seen &&
+        speed > 1.2 &&
+        speed < 20
+      ) {
         const k = Math.min(1, (speed - 1.2) / 4);
         S.wave.kick(-Math.sign(vx) * 90 * k * Math.min(1, Math.abs(vx) / speed + 0.2));
         S.squash.kick(-0.25 * k);
