@@ -13,9 +13,9 @@ curl -fsSL https://github.com/PeeperLanguage/compiler/releases/latest/download/i
 irm https://github.com/PeeperLanguage/compiler/releases/latest/download/install.ps1 | iex
 ```
 
-A release holds one archive each for Linux x86-64, macOS ARM64 and Windows
-x86-64, with the compiler, its libraries, its runtime and its LLVM toolchain.
-The script downloads this machine's archive, up to 190 MB, and checks it against
+A release holds one archive each for Linux, macOS and Windows, on x86-64 and
+ARM64, with the compiler, its libraries, its runtime and its LLVM toolchain.
+The script downloads this machine's archive, up to 222 MB, and checks it against
 the release's `SHA256SUMS`. It then replaces the installation, `~/.peeper` (on
 Windows `%LOCALAPPDATA%\Peeper`), only once the new one is unpacked.
 
@@ -29,8 +29,7 @@ peeper run
 ```
 
 On macOS, linking programs needs Xcode's command line tools
-(`xcode-select --install`). Linux ARM64 has no release yet, so build it from
-source.
+(`xcode-select --install`), and an Intel Mac needs macOS 13 or newer.
 
 ## Build from source
 
@@ -104,15 +103,17 @@ build/bin/peeper run examples/01_functions.peep
 
 ## Platforms
 
-CI builds a toolchain pack for each of these, and builds and tests the compiler
-on each except Linux ARM64:
+CI builds a toolchain pack for each of these, builds and tests the compiler on
+each, and each has a release:
 
-| System  | Architecture | Toolchain               | Release |
-| ------- | ------------ | ----------------------- | ------- |
-| Linux   | x86-64       | LLVM                    | yes     |
-| Linux   | ARM64        | LLVM                    | no      |
-| macOS   | ARM64        | LLVM                    | yes     |
-| Windows | x86-64       | LLVM through llvm-mingw | yes     |
+| System  | Architecture | Toolchain               |
+| ------- | ------------ | ----------------------- |
+| Linux   | x86-64       | LLVM                    |
+| Linux   | ARM64        | LLVM                    |
+| macOS   | x86-64       | LLVM                    |
+| macOS   | ARM64        | LLVM                    |
+| Windows | x86-64       | LLVM through llvm-mingw |
+| Windows | ARM64        | LLVM through llvm-mingw |
 
 On x86-64 Linux, `-target i686-linux` builds 32-bit programs too, with the
 32-bit C library installed.

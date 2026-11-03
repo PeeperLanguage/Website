@@ -11,9 +11,13 @@ import { ProgramTerminal } from '@/components/terminal/program-terminal';
 import { runCommand } from '@/lib/compiler/project';
 import { riseEase } from '@/lib/easing';
 import type { Token } from '@/lib/highlight/highlight';
+import { compilerUrl } from '@/lib/shared';
 import { PrimaryLink, SecondaryLink } from './action-link';
 import { Chip } from './chip';
 import { PageWidth } from './page-width';
+
+// Set by hand at each release.
+const latestVersion = 'v0.3.1';
 
 const headline = ['Systems', 'code,'];
 const highlighted = ['checked', 'before', 'it', 'runs.'];
@@ -52,13 +56,15 @@ export function Hero({
       <Backdrop />
       <PageWidth className="grid gap-14 pt-20 pb-24 md:pt-28 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-10">
         <div className="min-w-0">
-          <Chip style={rise(0, 8)} className="hero-rise font-medium">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60 motion-reduce:animate-none" />
-              <span className="relative inline-flex size-2 rounded-full bg-brand" />
-            </span>
-            Pre-release · the compiler is being rebuilt in Rust
-          </Chip>
+          <a href={`${compilerUrl}/releases/latest`} className="inline-flex">
+            <Chip style={rise(0, 8)} className="hero-rise font-medium">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60 motion-reduce:animate-none" />
+                <span className="relative inline-flex size-2 rounded-full bg-brand" />
+              </span>
+              Latest release {latestVersion}
+            </Chip>
+          </a>
 
           <h1 className="mt-6 font-display text-5xl font-bold sm:text-6xl lg:text-7xl">
             {[headline, highlighted].map((words, line) => (

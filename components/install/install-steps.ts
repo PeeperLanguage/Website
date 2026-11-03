@@ -17,22 +17,24 @@ export const installChoices: Choice[] = [
   { name: 'Windows PowerShell', command: `irm ${release}/install.ps1 | iex` },
 ];
 
-/** A system and processor a way works on. */
-export type Platform = { system: System; processor: string };
+/** Each system and processor Peeper works on, by either way of getting it. Set by hand. */
+export const platforms: { system: System; processor: string }[] = [
+  { system: 'Linux', processor: 'x86-64' },
+  { system: 'Linux', processor: 'ARM64' },
+  { system: 'macOS', processor: 'x86-64' },
+  { system: 'macOS', processor: 'ARM64' },
+  { system: 'Windows', processor: 'x86-64' },
+  { system: 'Windows', processor: 'ARM64' },
+];
 
-/** The two ways to get Peeper: their steps, and the platforms each works on. */
-export const ways: { name: string; steps: Step[]; platforms: Platform[] }[] = [
+/** The two ways to get Peeper, and their steps. */
+export const ways: { name: string; steps: Step[] }[] = [
   {
     name: 'Install',
     steps: [
       { note: 'install the compiler', choices: installChoices },
       { note: 'then, in a new terminal and an empty folder', command: 'peeper init hello' },
       { note: 'run the new project', command: 'peeper run' },
-    ],
-    platforms: [
-      { system: 'Linux', processor: 'x86-64' },
-      { system: 'macOS', processor: 'ARM64' },
-      { system: 'Windows', processor: 'x86-64' },
     ],
   },
   {
@@ -51,12 +53,6 @@ export const ways: { name: string; steps: Step[]; platforms: Platform[] }[] = [
       },
       { note: 'build the compiler', command: 'bash scripts/build.sh' },
       { note: 'run a program', command: 'build/bin/peeper run examples/01_functions.peep' },
-    ],
-    platforms: [
-      { system: 'Linux', processor: 'x86-64' },
-      { system: 'Linux', processor: 'ARM64' },
-      { system: 'macOS', processor: 'ARM64' },
-      { system: 'Windows', processor: 'x86-64' },
     ],
   },
 ];
