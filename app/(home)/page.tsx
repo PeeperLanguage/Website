@@ -1,21 +1,28 @@
 import { ArrowRight } from 'lucide-react';
+import { Big_Shoulders } from 'next/font/google';
 import Link from 'next/link';
 import { CursorMuncher } from '@/components/home/cursor-muncher';
 import { Diagnostic } from '@/components/home/diagnostic';
 import { Features } from '@/components/home/features';
 import { GetStarted } from '@/components/home/get-started';
 import { Hero } from '@/components/home/hero';
+import { shownCommands } from '@/components/home/install-steps';
 import { MotionProvider } from '@/components/home/motion-provider';
 import { Pipeline } from '@/components/home/pipeline';
+import { WaterEdge } from '@/components/home/pond';
 import { heroProgram, storyProgram, tourPrograms } from '@/components/home/programs';
 import { Tour } from '@/components/home/tour';
 import { Mascot } from '@/components/mascot';
-import { peeperLines } from '@/lib/highlight';
+import { commandTokens, peeperLines } from '@/lib/highlight';
 import { compilerUrl } from '@/lib/shared';
+
+// The narrow face of the home page's headings, used as `font-display`.
+const displayFont = Big_Shoulders({ subsets: ['latin'], variable: '--font-big-shoulders' });
 
 export default async function HomePage() {
   const hero = await peeperLines(heroProgram);
   const story = await peeperLines(storyProgram);
+  const commands = await commandTokens(shownCommands);
   const samples = await Promise.all(
     tourPrograms.map(async ({ name, code, output }) => ({
       name,
@@ -25,13 +32,13 @@ export default async function HomePage() {
   );
   return (
     <MotionProvider>
-      <main className="flex-1">
-        <Hero lines={hero} />
+      <main className={`${displayFont.variable} flex-1`}>
+        <Hero lines={hero} commands={commands} />
         <Pipeline source={story} />
         <Diagnostic />
         <Features />
         <Tour samples={samples} />
-        <GetStarted />
+        <GetStarted commands={commands} />
         <Closing />
       </main>
       <Footer />
@@ -49,7 +56,7 @@ function Closing() {
             aria-hidden="true"
             className="absolute inset-x-0 -top-24 mx-auto h-48 w-3/4 rounded-full bg-gradient-to-r from-brand/30 via-brand-2/25 to-brand-3/30 blur-3xl"
           />
-          <h2 className="relative text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+          <h2 className="relative font-display text-4xl font-bold text-balance sm:text-5xl">
             Peeper is young. <span className="text-gradient">Help shape it.</span>
           </h2>
           <p className="relative mx-auto mt-4 max-w-xl text-fd-muted-foreground text-pretty">
@@ -79,7 +86,9 @@ function Closing() {
 
 function Footer() {
   return (
-    <footer className="border-t">
+    <footer className="relative border-t">
+      {/* The page ends at the water's edge it began with, on the footer's top line. */}
+      <WaterEdge className="absolute inset-x-0 bottom-full -z-10 h-84" />
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-fd-muted-foreground sm:flex-row sm:px-6">
         <div className="flex items-center gap-2">
           <Mascot className="h-5 w-[28px] shrink-0" />

@@ -23,9 +23,7 @@ export function SectionHeading({
       <p className="font-mono text-xs font-medium tracking-widest text-brand uppercase">
         {eyebrow}
       </p>
-      <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-        {title}
-      </h2>
+      <h2 className="mt-3 font-display text-4xl font-bold text-balance sm:text-5xl">{title}</h2>
       {children && <p className="mt-4 text-fd-muted-foreground text-pretty">{children}</p>}
     </motion.div>
   );

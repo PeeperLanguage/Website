@@ -9,6 +9,7 @@ type Drawing = {
   stroke?: string;
   d?: string;
   circle?: [number, number, number];
+  spiral?: { eye: EyeId; r: number };
   gen?: 'mouth' | 'tongue' | 'queasy';
 };
 
@@ -138,6 +139,8 @@ export function mountCursorMuncher(container: HTMLDivElement) {
       d: 'M841.574 358.12C896.462 354.371 906.855 437.805 853.728 448.912C797.878 452.786 789.6 367.941 841.574 358.12Z',
     },
     { role: 'pupil-r', fill: '#f5f5f5', circle: [862, 380, 11] },
+    { role: 'spiral', fill: 'none', stroke: INK, spiral: { eye: 'eye-l', r: 150 } },
+    { role: 'spiral', fill: 'none', stroke: INK, spiral: { eye: 'eye-r', r: 138 } },
     { role: 'lump', fill: INK, d: 'M0 0L0 78L21 58L35 88L49 82L35 52L64 52Z' },
     {
       role: 'smile',
@@ -147,6 +150,12 @@ export function mountCursorMuncher(container: HTMLDivElement) {
     { role: 'mouth', fill: '#5a1f2b', stroke: INK, gen: 'mouth' },
     { role: 'mouth-tongue', fill: '#f28b9b', gen: 'tongue' },
     { role: 'queasy', fill: 'none', stroke: INK, gen: 'queasy' },
+    {
+      role: 'gasp',
+      fill: '#5a1f2b',
+      stroke: INK,
+      d: 'M547 556C561 556 573 571 573 590C573 609 561 624 547 624C533 624 521 609 521 590C521 571 533 556 547 556Z',
+    },
   ];
 
   // Parse each path into absolute commands with point pairs (the drawing uses M, C, L and Z only).
@@ -230,15 +239,30 @@ export function mountCursorMuncher(container: HTMLDivElement) {
     ];
   }
   // The queasy mouth: the smile's width, gone wavy and turned down at the ends.
-  function queasyPoints(amount: number): Geometry {
+  function queasyPoints(): Geometry {
     const pts: [number, number][] = [];
     for (let i = 0; i <= 24; i++) {
       const t = i / 24;
       const droop = -8 * Math.sin(Math.PI * t) + 6;
       pts.push([
         MOUTH.x - 44 + 88 * t,
-        MOUTH.y + 16 + droop + Math.sin(t * Math.PI * 3 + state.t * 7) * 7 * amount,
+        MOUTH.y + 16 + droop + Math.sin(t * Math.PI * 3 + state.t * 7) * 7,
       ]);
+    }
+    return [
+      { c: 'M', p: [pts[0]] },
+      { c: 'L', p: pts.slice(1) },
+    ];
+  }
+  // A dizzy eye: a spiral from the eye's centre, slowly turning.
+  function spiralPoints(eye: EyeId, radius: number): Geometry {
+    const [ex, ey] = EYE[eye];
+    const turns = 3;
+    const pts: [number, number][] = [];
+    for (let i = 0; i <= 120; i++) {
+      const along = i / 120;
+      const a = along * turns * Math.PI * 2 + state.t * 5;
+      pts.push([ex + Math.cos(a) * radius * along, ey + Math.sin(a) * radius * along]);
     }
     return [
       { c: 'M', p: [pts[0]] },
@@ -253,6 +277,7 @@ export function mountCursorMuncher(container: HTMLDivElement) {
       el.setAttribute('stroke', s.stroke);
       el.setAttribute('stroke-width', '16');
       el.setAttribute('stroke-linejoin', 'round');
+      el.setAttribute('stroke-linecap', 'round');
     }
     shapesG.append(el);
     if (s.role === 'mouth-tongue') el.setAttribute('clip-path', `url(#${id}-clip-mouth)`);
@@ -337,10 +362,11 @@ export function mountCursorMuncher(container: HTMLDivElement) {
   // State the act sets directly.
   const state = {
     sick: 0, // 0..1, skin colour toward green
-    pupilOverride: null as ((id: PupilId, time: number) => [number, number]) | null, // function(t) -> {x, y} offsets while dizzy
+    pupilOverride: null as ((id: PupilId) => [number, number]) | null, // where the act holds the pupils
     lump: { x: 547, y: 600, rot: 0, s: 0, op: 0 },
     chew: 0, // -1..1, the closed mouth munching
-    queasy: 0, // 0..1, the wavy sick mouth
+    dizzy: false, // spirals for eyes and a small round open mouth
+    queasy: false, // the wavy sick mouth
     t: 0,
   };
 
@@ -422,8 +448,10 @@ export function mountCursorMuncher(container: HTMLDivElement) {
         s.gen === 'mouth' || s.gen === 'tongue'
           ? mouthPoints(o, s.gen)
           : s.gen === 'queasy'
-            ? queasyPoints(state.queasy)
-            : s.geom;
+            ? queasyPoints()
+            : s.spiral
+              ? spiralPoints(s.spiral.eye, s.spiral.r)
+              : s.geom;
       for (const seg of geom) {
         d += seg.c;
         for (const [x, y] of seg.p) {
@@ -436,17 +464,19 @@ export function mountCursorMuncher(container: HTMLDivElement) {
         const c = SKIN.map((v, i) => Math.round(v + (SICK[i] - v) * state.sick));
         s.el.setAttribute('fill', `rgb(${c})`);
       }
-      // Exactly one mouth shows: the smile, the queasy line, or the opening.
-      if (s.role === 'smile') s.el.setAttribute('opacity', !open && state.queasy < 0.5 ? '1' : '0');
-      if (s.role === 'queasy')
-        s.el.setAttribute('opacity', !open && state.queasy >= 0.5 ? '1' : '0');
+      // Exactly one mouth shows: the smile, the gasp, the queasy line, or the opening.
+      if (s.role === 'smile')
+        s.el.setAttribute('opacity', !open && !state.dizzy && !state.queasy ? '1' : '0');
+      if (s.role === 'gasp') s.el.setAttribute('opacity', !open && state.dizzy ? '1' : '0');
+      if (s.role === 'queasy') s.el.setAttribute('opacity', !open && state.queasy ? '1' : '0');
+      if (s.role === 'pupil-l' || s.role === 'pupil-r')
+        s.el.setAttribute('opacity', state.dizzy ? '0' : '1');
+      if (s.role === 'spiral') s.el.setAttribute('opacity', state.dizzy ? '1' : '0');
       if (s.role === 'mouth' || s.role === 'mouth-tongue')
         s.el.setAttribute('opacity', open ? '1' : '0');
       if (s.role === 'lump') s.el.setAttribute('opacity', String(state.lump.op));
-      if (s.role === 'queasy' || s.role === 'mouth') {
+      if (s.role === 'queasy' || s.role === 'mouth' || s.role === 'gasp') {
         s.el.setAttribute('stroke-width', s.role === 'queasy' ? '13' : '14');
-        s.el.setAttribute('stroke-linecap', 'round');
-        s.el.setAttribute('stroke-linejoin', 'round');
       }
     }
     const mouthShape = required(shapes.find((x) => x.role === 'mouth'));
@@ -534,7 +564,8 @@ export function mountCursorMuncher(container: HTMLDivElement) {
   };
 
   function frame(now: number) {
-    const dt = Math.min(1 / 30, (now - last) / 1000);
+    // A frame's timestamp can be older than the wake that set `last`: time must not run backwards.
+    const dt = Math.max(0, Math.min(1 / 30, (now - last) / 1000));
     last = now;
     state.t += dt;
 
@@ -559,13 +590,13 @@ export function mountCursorMuncher(container: HTMLDivElement) {
     for (const b of bulges) b.a += (b.amp - b.a) * Math.min(1, dt * 14);
     for (const fn of tickers) fn(dt, now);
 
-    // Pupils: look at the cursor, or spin while dizzy.
+    // Pupils: look at the cursor, or stay where the act holds them.
     for (const id of ['pupil-l', 'pupil-r'] as const) {
       const p = PUPIL[id];
       let tx: number;
       let ty: number;
       if (state.pupilOverride) {
-        [tx, ty] = state.pupilOverride(id, state.t);
+        [tx, ty] = state.pupilOverride(id);
       } else {
         const [ex, ey] = EYE[p.eye];
         const e = toScreen(ex, ey);
@@ -896,18 +927,11 @@ export function mountCursorMuncher(container: HTMLDivElement) {
     S.blink.t = 1;
     await sleep(250);
 
-    // 7. Uh oh: the tummy rumbles, the skin goes green, the eyes spin, the mouth goes wavy.
+    // 7. Uh oh: the tummy rumbles, the skin goes green, the eyes turn to spirals, the mouth drops open.
     say('Uh oh…');
     const rumble = [bulge(450, 740, 90, 0), bulge(650, 745, 90, 0)];
     tween(900, (t) => (state.sick = t), easeInOut);
-    tween(300, (t) => (state.queasy = t), easeOut);
-    state.pupilOverride = (id, t) => {
-      const p = PUPIL[id];
-      const [ex, ey] = EYE[p.eye];
-      const dir = id === 'pupil-l' ? 1 : -1;
-      const a = t * 9 * dir;
-      return [ex + Math.cos(a) * p.r * 0.55 - p.base[0], ey + Math.sin(a) * p.r * 0.55 - p.base[1]];
-    };
+    state.dizzy = true;
     const rumbleStart = performance.now();
     const rumbleTick = () => {
       const t = (performance.now() - rumbleStart) / 1000;
@@ -927,6 +951,8 @@ export function mountCursorMuncher(container: HTMLDivElement) {
 
     // 8. Heave, twice: squash down, a lump climbs, the cheeks balloon, the mouth clamps shut.
     say('hrrk…');
+    state.dizzy = false;
+    state.queasy = true;
     state.pupilOverride = (id) => {
       // Eyes squeezed upward.
       const p = PUPIL[id];
@@ -1036,7 +1062,7 @@ export function mountCursorMuncher(container: HTMLDivElement) {
     S.blink.t = 0.5;
     scheduleTimeout(() => (S.blink.t = 1), 650);
     tween(1000, (t) => (state.sick = 1 - t), easeInOut);
-    state.queasy = 0;
+    state.queasy = false;
     state.pupilOverride = null;
     S.mouth.t = 0;
     S.squash.t = 1;

@@ -2,6 +2,11 @@
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
 
+/* Home page headings. Inline, as the face's variable is set on the page, not on the root. */
+@theme inline {
+  --font-display: var(--font-big-shoulders), ui-sans-serif, sans-serif;
+}
+
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -128,15 +133,20 @@ html > body[data-scroll-locked] {
   color: transparent;
 }
 
-/* Hairline grid behind the hero, faded out toward the edges. */
-.hero-grid {
-  background-image:
-    linear-gradient(to right, var(--color-fd-border) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-fd-border) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 75%);
+/*
+ * The water's edge, from components/home/pond.tsx. Its colors are solid mixes into the page's own
+ * background, so shapes merge where they cross, as a silhouette does, instead of adding up.
+ */
+.water-edge {
+  --reed: color-mix(in oklab, var(--color-brand) 30%, var(--color-fd-background));
+  --reed-far: color-mix(in oklab, var(--color-brand) 15%, var(--color-fd-background));
+  --cattail: color-mix(in oklab, var(--color-brand-3) 46%, var(--color-fd-background));
+  --cattail-far: color-mix(in oklab, var(--color-brand-3) 24%, var(--color-fd-background));
 }
-
+/* Reeds rise out of the water, so their feet fade instead of ending on the section's edge. */
+.pond-edge {
+  mask-image: linear-gradient(to top, transparent, black 26%);
+}
 /* The hero's words, which must not wait for the page's script. */
 @keyframes hero-rise {
   from {
