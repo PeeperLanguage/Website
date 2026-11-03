@@ -1,13 +1,17 @@
 'use client';
 import {
   Check,
+  CircleCheck,
+  CircleX,
   Copy,
   Download,
   FolderTree,
+  Info,
   type LucideIcon,
   Play,
   Share2,
   Trash2,
+  TriangleAlert,
   X,
 } from 'lucide-react';
 import {
@@ -27,6 +31,7 @@ import {
   CHECKER_FAILED,
   type CheckReply,
   type CheckRequest,
+  type Entry,
   type RunReply,
 } from '@/lib/compiler/checker';
 import {
@@ -248,6 +253,45 @@ function FileTabs({
   ));
 }
 
+const PROBLEM_KINDS: {
+  name: string;
+  severities: Entry['severity'][];
+  Icon: LucideIcon;
+  color: string;
+}[] = [
+  { name: 'error', severities: ['error'], Icon: CircleX, color: 'text-red-500' },
+  { name: 'warning', severities: ['warning'], Icon: TriangleAlert, color: 'text-amber-500' },
+  { name: 'note', severities: ['info', 'hint'], Icon: Info, color: 'text-sky-500' },
+];
+
+/** What the checker found, as an icon and a count for each kind; short enough for a phone. */
+function ProblemCounts({ entries }: { entries: Entry[] }) {
+  if (entries.length === 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <CircleCheck aria-hidden className="size-3 text-emerald-500" />
+        <span className="max-sm:sr-only">No problems found</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-3">
+      {PROBLEM_KINDS.map(({ name, severities, Icon, color }) => {
+        const count = entries.filter(({ severity }) => severities.includes(severity)).length;
+        if (count === 0) return null;
+        const label = `${count} ${name}${count === 1 ? '' : 's'}`;
+        return (
+          <span key={name} title={label} className="inline-flex items-center gap-1">
+            <Icon aria-hidden className={cn('size-3', color)} />
+            <span aria-hidden>{count}</span>
+            <span className="sr-only">{label}</span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 /** Peeper's playground: edit files, with what the checker finds underlined, and run them. */
 export function Playground({ starting }: { starting: StartingCode }) {
   const [files, setFiles] = useState<Record<string, string>>({
@@ -307,7 +351,6 @@ export function Playground({ starting }: { starting: StartingCode }) {
   const names = Object.keys(files).sort();
   const shownFolders = allFolders(names, folders);
   const entries = useMemo(() => reply?.entries ?? [], [reply]);
-  const problems = entries.length === 1 ? '1 problem' : `${entries.length || 'No'} problems`;
   const running = 'state' in run && run.state === 'running';
 
   /** Runs the code in a worker of its own, so ending it cannot touch the checks. */
@@ -471,17 +514,17 @@ export function Playground({ starting }: { starting: StartingCode }) {
               />
             </div>
           </div>
-          <div className="flex gap-4 border-t px-4 py-1.5 font-mono text-[11px] text-fd-muted-foreground">
+          <div className="flex h-7 items-center gap-4 border-t px-4 font-mono text-[11px] whitespace-nowrap text-fd-muted-foreground">
             <span>
               Ln {caret.line}, Col {caret.column}
             </span>
             <span className="hidden sm:inline">UTF-8</span>
             <span>Peeper {VERSION}</span>
             <span className="hidden lg:inline">Esc, then Tab: leave the editor</span>
-            <span className="ml-auto truncate">
+            <span className="ml-auto min-w-0 truncate">
               {!reply && 'Starting the checker…'}
               {reply?.failure && `Could not check: ${reply.failure}.`}
-              {reply?.entries && `${problems} underlined`}
+              {reply?.entries && <ProblemCounts entries={entries} />}
             </span>
           </div>
         </div>
