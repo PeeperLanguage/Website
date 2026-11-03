@@ -564,7 +564,8 @@ export function mountCursorMuncher(container: HTMLDivElement) {
   };
 
   function frame(now: number) {
-    const dt = Math.min(1 / 30, (now - last) / 1000);
+    // A frame's timestamp can be older than the wake that set `last`: time must not run backwards.
+    const dt = Math.max(0, Math.min(1 / 30, (now - last) / 1000));
     last = now;
     state.t += dt;
 
