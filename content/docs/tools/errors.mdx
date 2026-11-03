@@ -3,11 +3,28 @@ title: Errors and fixes
 description: How to read a Peeper error, and which ones peeper fix applies for you.
 ---
 
-Every error on this page is what `peeper check` printed for a small program.
+Every error on this page comes from the compiler itself, running in this page on
+a small program.
 
 ## Reading an error
 
-<Terminal output="unset" />
+<Terminal run="auto">
+
+```peeper
+fn pick(flag: bool) -> i32 {
+    let value: i32;
+    if flag {
+        value = 1;
+    }
+    return value;
+}
+
+fn main() {
+    println(pick(true));
+}
+```
+
+</Terminal>
 
 - **The first line** gives the code and what is wrong.
 - **`-->`** gives the file, line and column.
@@ -33,24 +50,67 @@ Some errors carry a fix, marked `= fix:`, with the changed line under it and
 the new text highlighted. `peeper fix` applies these fixes to your files, and
 an editor offers them as quick fixes.
 
-<Terminal output="semicolon" />
+<Terminal run="auto">
 
-<Terminal output="deref" />
+```peeper
+fn main() {
+    let total = 1 + 2
+    println(total);
+}
+```
 
-```txt title="peeper fix"
+</Terminal>
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let n = 1;
+    let r = &n;
+    let m: i32 = r;
+    println(m);
+}
+```
+
+</Terminal>
+
+```terminal title="peeper fix"
 fixed src/main.peep:4:19: add `.*` to use the value it points to
 ```
 
 A `= help:` line is only a suggestion, and `peeper fix` leaves it to you. A
 guess at a mistyped name is one:
 
-<Terminal output="typo" />
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let total = 3;
+    println("total:", totla);
+}
+```
+
+</Terminal>
 
 ## More errors
 
 A function that can end without returning its value:
 
-<Terminal output="noReturn" />
+<Terminal run="auto">
+
+```peeper
+fn sign(n: i32) -> i32 {
+    if n > 0 {
+        return 1;
+    }
+}
+
+fn main() {
+    println(sign(1));
+}
+```
+
+</Terminal>
 
 The other pages show errors where their rules come up:
 [assigning without `mut`](/docs/language/variables),

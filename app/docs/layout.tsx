@@ -1,6 +1,6 @@
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { DocsItem, DocsItemHover } from '@/components/docs-item';
-import { MotionProvider } from '@/components/home/motion-provider';
+import { DocsItem, DocsItemHover } from '@/components/docs/docs-item';
+import { MotionProvider } from '@/components/motion-provider';
 import { baseOptions } from '@/lib/layout.shared';
 import { source } from '@/lib/source';
 

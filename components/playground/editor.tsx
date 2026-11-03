@@ -3,11 +3,11 @@ import { shikiToMonaco } from '@shikijs/monaco';
 import type * as Monaco from 'monaco-editor';
 import { useEffect, useRef, useState } from 'react';
 import type { HighlighterCore } from 'shiki/core';
-import { CodeTokens } from '@/components/code-card';
-import type { Entry } from '@/lib/checker';
-import { CODE_THEME } from '@/lib/code-theme';
-import { languageOf, STARTING_CODE } from '@/lib/file-paths';
-import { codeTokens, highlighter, type Token } from '@/lib/highlight';
+import { CodeTokens } from '@/components/code/code-card';
+import type { Entry } from '@/lib/compiler/checker';
+import { languageOf } from '@/lib/compiler/project';
+import { CODE_THEME } from '@/lib/highlight/code-theme';
+import { codeTokens, highlighter, type Token } from '@/lib/highlight/highlight';
 
 const LANGUAGE = 'peeper';
 const THEMES = { light: 'peeper-light', dark: 'peeper-dark' };
@@ -74,23 +74,26 @@ async function setUpMonaco() {
   return api;
 }
 
+/** The code a new project starts with, and its lines colored by the server for the first paint. */
+export type StartingCode = { code: string; lines: Token[][] };
+
 /** `text` just where Monaco will draw it, so that the editor arriving does not show. */
 function CodePreview({
   file,
   text,
-  startingLines,
+  starting,
 }: {
   file: string;
   text: string;
-  startingLines: Token[][];
+  starting: StartingCode;
 }) {
   const [shiki, setShiki] = useState<HighlighterCore>();
   useEffect(() => {
     highlighter.then(setShiki);
   }, []);
   const lines =
-    text === STARTING_CODE
-      ? startingLines
+    text === starting.code
+      ? starting.lines
       : shiki
         ? codeTokens(shiki, text, languageOf(file))
         : text.split('\n').map((content) => [{ content, light: 'inherit', dark: 'inherit' }]);
@@ -148,14 +151,14 @@ function marker(api: typeof Monaco, { severity, code, message, place, related }:
 export function Editor({
   files,
   active,
-  startingLines,
+  starting,
   entries,
   onEdit,
   onCaret,
 }: {
   files: Record<string, string>;
   active: string;
-  startingLines: Token[][]; // `STARTING_CODE`, colored by the server for the first paint
+  starting: StartingCode;
   entries: Entry[];
   onEdit: (file: string, text: string) => void;
   onCaret: (line: number, column: number) => void;
@@ -294,7 +297,7 @@ export function Editor({
               </button>
             )}
           </p>
-          <CodePreview file={active} text={files[active]} startingLines={startingLines} />
+          <CodePreview file={active} text={files[active]} starting={starting} />
         </div>
       )}
     </div>

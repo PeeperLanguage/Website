@@ -16,11 +16,22 @@ let b = [_]i64{4, 5};           // `_` counts the values
 An index is checked against the length. If the compiler can see the index is
  too large, it is an error:
 
-<Terminal output="index" />
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let values = [3]i32{1, 2, 3};
+    println(values[3]);
+}
+```
+
+</Terminal>
 
 Otherwise the program checks it when it runs, and stops if it fails. Any
  integer type can be an index. `values...` in an array literal gives each of
  another array's values.
+
+<Terminal run="auto">
 
 ```peeper title="examples/08_arrays.peep"
 // Arrays: `[N]T` holds `N` values of type `T`, and `.len` is `N`. An array
@@ -84,17 +95,7 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-arrays: [1, 2, 3] [4, 5] 3
-copy: 1 9 3
-nested: [[1, 2, 3], [40, 5, 6]] 3
-passed: 6 returned: [0, 10, 20]
-through &mut: [10, 3, 4]
-loops: 12
-numbered: 0 1 1 2 2 3
-spread: [1, 2, 3, 0, 1, 2, 3]
-empty: 0
-```
+</Terminal>
 
 ## Slices
 
@@ -111,6 +112,8 @@ let back = total(&numbers[4..]);        // a missing end is the length: 11
 
 `&numbers` turns into a `[&]i32` where one is expected. A slice index is
  checked against the count when the program runs.
+
+<Terminal run="auto">
 
 ```peeper title="examples/12_slices.peep"
 // Slices: `[&]T` views some elements, `[&mut]T` can also change them. A
@@ -163,7 +166,4 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-totals: 21 5 9 3 11 0 14
-numbers: [1, 2, 0, 0, 5, 6] last: 6 copied: [5, 6, 7]
-```
+</Terminal>

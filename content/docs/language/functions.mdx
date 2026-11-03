@@ -33,6 +33,8 @@ const Limit = 10;                   // its type comes from where it is used
 const Answer: i32 = Limit * 4 + 2;  // or is written
 ```
 
+<Terminal run="auto">
+
 ```peeper title="examples/01_functions.peep"
 // Functions and constants. A function takes typed parameters and may give a
 // result. The program starts at `main`; its `i32` result is the exit code.
@@ -74,12 +76,7 @@ fn greet() {
 }
 ```
 
-```txt title="Output"
-square: 100
-gcd: 6
-first: 3
-hello from peeper
-```
+</Terminal>
 
 ## Calls while compiling
 
@@ -93,6 +90,8 @@ hello from peeper
 const Fib90 = fib(90);
 const Big = factorial(20) + 1;
 ```
+
+<Terminal run="auto">
 
 ```peeper title="examples/16_compile_time_calls.peep"
 // Compile-time calls: a constant's value may call a function. The call runs
@@ -133,7 +132,4 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-constants: 2880067194370816120 2432902008176640001 144 110
-at run time: 6765
-```
+</Terminal>

@@ -41,7 +41,7 @@ import {
   SOURCE,
   STARTING_FOLDER_ICONS,
   topMost,
-} from '@/lib/file-paths';
+} from '@/lib/compiler/project';
 
 const OPEN_ON_DRAG_MS = 600; // a shut folder opens when something is held over it
 const DRAG_TYPE = 'application/x-peeper-paths'; // not text, which the editor would paste
@@ -164,6 +164,30 @@ function MenuItem({
     >
       <Icon aria-hidden className="size-3.5 shrink-0" />
       <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+/** A round button that shows only its icon. */
+function IconButton({
+  icon: Icon,
+  label,
+  className,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  className?: string;
+  onClick: (event: MouseEvent) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={cn('rounded-full p-2 hover:bg-fd-accent', className)}
+    >
+      <Icon aria-hidden className="size-4" />
     </button>
   );
 }
@@ -569,25 +593,20 @@ export function FileTree({
     >
       <div className="flex items-center gap-1 border-b px-3 py-1.5 md:hidden">
         <span className="font-sans font-medium">Files</span>
-        <button
-          type="button"
-          aria-label="New file or folder"
+        <IconButton
+          icon={Plus}
+          label="New file or folder"
+          className="ml-auto"
           onClick={() => setMenu({ x: 0, y: 0, paths: [], folder: '' })}
-          className="ml-auto rounded-full p-2 hover:bg-fd-accent"
-        >
-          <Plus aria-hidden className="size-4" />
-        </button>
-        <button
-          type="button"
-          aria-label="Close files"
+        />
+        <IconButton
+          icon={X}
+          label="Close files"
           onClick={() => {
             setSelecting(false);
             onStopBrowsing();
           }}
-          className="rounded-full p-2 hover:bg-fd-accent"
-        >
-          <X aria-hidden className="size-4" />
-        </button>
+        />
       </div>
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: each row takes the keys */}
       <div
@@ -674,17 +693,15 @@ export function FileTree({
                   <span className="truncate">{path ? baseName(path) : project}</span>
                 </div>
               )}
-              <button
-                type="button"
-                aria-label={`Actions for ${path || project}`}
+              <IconButton
+                icon={MoreHorizontal}
+                label={`Actions for ${path || project}`}
+                className="shrink-0 md:hidden"
                 onClick={(event) => {
                   event.stopPropagation();
                   openRowMenu(0, 0, row);
                 }}
-                className="shrink-0 rounded-full p-2 md:hidden"
-              >
-                <MoreHorizontal aria-hidden className="size-4" />
-              </button>
+              />
             </div>
           );
           return naming?.parent === path && folder && !naming.renaming

@@ -20,7 +20,21 @@ let end: Point = .{ x = 4, y = 6 };
  A `mut` variable can be set again, and then it is usable again. Using a moved
  variable is an error that shows where the move happened:
 
-<Terminal output="moved" />
+<Terminal run="auto">
+
+```peeper
+struct Point { x: i32, y: i32 }
+
+fn main() {
+    let point = Point.{ x = 1, y = 2 };
+    let taken = point;
+    println(point.x, taken.x);
+}
+```
+
+</Terminal>
+
+<Terminal run="auto">
 
 ```peeper title="examples/09_structs.peep"
 // Structs: `struct` names a group of fields. `Name.{ field = value }` makes
@@ -54,18 +68,14 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-line: Line { start: Point { x: 0, y: 2 }, end: Point { x: 4, y: 6 }, weight: 2.0 }
-fields: 0 6 2.0
-length: 8
-again: Point { x: 1, y: 5 } Point { x: 1, y: 1 }
-empty: Empty {}
-```
+</Terminal>
 
 ## Type aliases
 
  `type Name = T` gives `T` another name. Values of the alias and of `T` mix
  freely, and an alias can name a type declared after it.
+
+<Terminal run="auto">
 
 ```peeper title="examples/10_type_aliases.peep"
 // Type aliases: `type Name = T` gives `T` another name. A value of the alias
@@ -90,6 +100,4 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-whole: 42 over limit: true home: Point { x: 0, y: 42 }
-```
+</Terminal>

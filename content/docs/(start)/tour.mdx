@@ -13,6 +13,8 @@ A function takes typed parameters and may give a result. The program starts
 at `main`; an `i32` result is its exit code. A constant's value is computed
 while compiling, and its type can come from where it is used.
 
+<Terminal run="auto">
+
 ```peeper
 const Limit = 10;                   // its type comes from where it is used
 const Answer: i32 = Limit * 4 + 2;  // computed while compiling
@@ -35,16 +37,15 @@ fn main() -> i32 {
 }
 ```
 
-```txt
-square: 100
-gcd: 6
-```
+</Terminal>
 
 ## Variables
 
 `let` names a value and `mut` lets it change. A `let` without a value is set
 by its first assignment, and the compiler checks it is set once on every
 path before it is read.
+
+<Terminal run="auto">
 
 ```peeper
 fn sign(value: i32) -> i32 {
@@ -67,9 +68,7 @@ fn main() {
 }
 ```
 
-```txt
-total: 5 signs: -1 0 1
-```
+</Terminal>
 
 ## Loops and ranges
 
@@ -77,6 +76,8 @@ total: 5 signs: -1 0 1
 a condition holds, or runs until `break`. `a..b` counts up to `b`, `a..=b`
 takes `b` too, `:step` steps by more than 1, and a range counts down when
 `a > b`.
+
+<Terminal run="auto">
 
 ```peeper
 fn main() {
@@ -96,11 +97,7 @@ fn main() {
 }
 ```
 
-```txt
-step: 0 3 6 9
-down: 5 3 1
-while: 243
-```
+</Terminal>
 
 ## Arrays and references
 
@@ -108,6 +105,8 @@ while: 243
 assigned or passed. `&` takes a reference, `&mut` one that can change the
 value, and `.*` reaches the value. `values...` spreads one array's values
 into another.
+
+<Terminal run="auto">
 
 ```peeper
 fn bump(values: &mut [3]i32) {      // changes the caller's array
@@ -126,16 +125,15 @@ fn main() {
 }
 ```
 
-```txt
-a: [1, 2, 3] c: [10, 3, 4] len: 3
-spread: [1, 2, 3, 0, 1, 2, 3]
-```
+</Terminal>
 
 ## Structs and moves
 
 `Name.{ field = value }` makes a struct, with the fields in any order, and
 `.{ ... }` takes the type from where it goes. A struct moves when assigned or
 passed: the old variable is then unset.
+
+<Terminal run="auto">
 
 ```peeper
 struct Point { x: i32, y: i32 }
@@ -154,16 +152,15 @@ fn main() {
 }
 ```
 
-```txt
-line: Line { start: Point { x: 1, y: 2 }, end: Point { x: 4, y: 6 } }
-length: 7
-```
+</Terminal>
 
 ## Borrows
 
 A `&mut` borrow may not overlap a reference that is still in use. The
 compiler names all three places: where the reference was made, where the
 `&mut` borrow starts, and where the reference is used later.
+
+<Terminal run="auto">
 
 ```peeper
 fn update(value: &mut i32, by: i32) {
@@ -178,13 +175,15 @@ fn main() {
 }
 ```
 
-<Terminal output="borrow" />
+</Terminal>
 
 ## Checks while running
 
 What the compiler cannot know, the program checks when it runs: an index
 against the length, a division by zero, a shift past the width. A failed check
 stops the program with exit code 101 and says where.
+
+<Terminal run="auto">
 
 ```peeper
 fn main() {
@@ -195,13 +194,7 @@ fn main() {
 }
 ```
 
-```txt
-value: 4
-value: 8
-value: 15
-panic: index out of bounds: the length is 3
-  --> src/main.peep:4:27
-```
+</Terminal>
 
 ## Next
 

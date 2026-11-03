@@ -1,3 +1,6 @@
+/** The curve things rise in on, as `hero-rise` in `app/global.css` has it too. */
+export const riseEase = [0.2, 0.7, 0.2, 1] as const;
+
 export const unit = (value: number) => Math.min(Math.max(value, 0), 1);
 
 export const between = (from: number, to: number, share: number) => from + (to - from) * share;

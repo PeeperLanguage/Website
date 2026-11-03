@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Playground } from '@/components/playground/playground';
-import { STARTING_CODE } from '@/lib/file-paths';
-import { codeTokens, highlighter } from '@/lib/highlight';
+import { codeTokens, highlighter } from '@/lib/highlight/highlight';
+import { readProgram } from '@/lib/read-program';
 
 export const metadata: Metadata = {
   title: 'Playground',
@@ -9,12 +9,13 @@ export const metadata: Metadata = {
 };
 
 export default async function PlaygroundPage() {
-  const startingLines = codeTokens(await highlighter, STARTING_CODE, 'peeper');
+  const code = await readProgram('playground/main');
+  const lines = codeTokens(await highlighter, code, 'peeper');
   return (
     // The height left under the 3.5rem site header: the editor fills the screen.
     <main className="h-[calc(100dvh-3.5rem)] min-h-96 p-2 sm:p-3">
       <h1 className="sr-only">Playground</h1>
-      <Playground startingLines={startingLines} />
+      <Playground starting={{ code, lines }} />
     </main>
   );
 }

@@ -24,7 +24,22 @@ fn shift(point: &mut Point, by: i32) {
  A `&mut` argument takes hold when the call starts. If a reference made before
  is still used after the call, the compiler shows all three places:
 
-<Terminal output="borrow" />
+<Terminal run="auto">
+
+```peeper
+fn update(target: &mut i32, value: i32) {
+    target.* = value;
+}
+
+fn main() {
+    let mut count = 1;
+    let view = &count;
+    update(&mut count, 2);
+    println("count:", view.*);
+}
+```
+
+</Terminal>
 
 ## Returning a reference
 
@@ -34,6 +49,8 @@ fn shift(point: &mut Point, by: i32) {
 ```peeper
 fn higher(score: &Score) -> &i32 in score {
 ```
+
+<Terminal run="auto">
 
 ```peeper title="examples/11_references.peep"
 // References: `&x` lends `x` to be read and `&mut x` to be changed, as in
@@ -96,9 +113,4 @@ fn main() {
 }
 ```
 
-```txt title="Output"
-shifted: Point { x: 11, y: 12 } 23
-doubled: 10
-through: 13 Point { x: 13, y: 14 }
-higher: 8 better: 9
-```
+</Terminal>
