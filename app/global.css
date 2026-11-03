@@ -2,6 +2,11 @@
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
 
+/* Home page headings. Inline, as the face's variable is set on the page, not on the root. */
+@theme inline {
+  --font-display: var(--font-big-shoulders), ui-sans-serif, sans-serif;
+}
+
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -128,13 +133,21 @@ html > body[data-scroll-locked] {
   color: transparent;
 }
 
-/* Hairline grid behind the hero, faded out toward the edges. */
-.hero-grid {
-  background-image:
-    linear-gradient(to right, var(--color-fd-border) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-fd-border) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 75%);
+/* Hairline rings behind the hero, spreading from where the frog sits like ripples on a pond. */
+.hero-ripples {
+  /* The frog's place: under the text on a narrow screen, beside it on a wide one. */
+  --frog: 75% 44rem;
+  background-image: repeating-radial-gradient(
+    circle at var(--frog),
+    transparent 0 47px,
+    var(--color-fd-border) 47px 48px
+  );
+  mask-image: radial-gradient(circle at var(--frog), black 15%, transparent 60%);
+}
+@media (min-width: 64rem) {
+  .hero-ripples {
+    --frog: calc(50% + 28.75rem) 9.5rem;
+  }
 }
 
 /* The hero's words, which must not wait for the page's script. */

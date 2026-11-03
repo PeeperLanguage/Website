@@ -13,7 +13,8 @@ export interface Token {
   darkStyle?: string;
 }
 
-// Only a project's two languages and the two themes: the site highlights nothing else.
+// Only a project's two languages and the two themes. The home page's shell commands add `sh`
+// on the server, in `commandTokens`, so the playground never loads it.
 export const highlighter = createHighlighterCore({
   themes: [bundledThemes[CODE_THEME.light], bundledThemes[CODE_THEME.dark]],
   langs: [peeper, import('shiki/langs/toml.mjs')],
@@ -41,4 +42,17 @@ export function codeTokens(highlighter: HighlighterCore, code: string, lang: str
 /** The lines of a finished sample of Peeper `code`. */
 export async function peeperLines(code: string): Promise<Token[][]> {
   return codeTokens(await highlighter, code.trimEnd(), 'peeper');
+}
+
+/**
+ * Each shell command's colored tokens, keyed by its text: the commands are one line each. All are
+ * colored as `sh`, the PowerShell ones too: shiki's PowerShell grammar knows no aliases such as
+ * `irm`, and colors each `/` of a bare URL as an operator.
+ */
+export async function commandTokens(commands: string[]): Promise<Record<string, Token[]>> {
+  const loaded = await highlighter;
+  await loaded.loadLanguage(import('shiki/langs/shellscript.mjs'));
+  return Object.fromEntries(
+    commands.map((command) => [command, codeTokens(loaded, command, 'shellscript')[0]]),
+  );
 }

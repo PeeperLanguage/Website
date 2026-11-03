@@ -1,6 +1,6 @@
 'use client';
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from 'motion/react';
-import { useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { unit } from '@/lib/easing';
 import type { Token } from '@/lib/highlight';
@@ -37,7 +37,7 @@ export function Pipeline({ source }: { source: Token[][] }) {
     const from = Math.min(Math.floor(at), stages.length - 2);
     const sweep = unit((at - from - hold) / (1 - 2 * hold));
     bars.current.forEach((bar, index) => {
-      if (bar) bar.style.transform = `scaleX(${unit(at - index + 1)})`;
+      bar?.style.setProperty('--fill', String(unit(at - index + 1)));
     });
     if (board.current) board.current.style.height = rowsHeight(from, sweep, counts);
     rows.forEach((row, id) => {
@@ -65,31 +65,29 @@ export function Pipeline({ source }: { source: Token[][] }) {
       <div className="sticky top-14 flex h-[calc(100svh-3.5rem)] items-center overflow-x-clip">
         <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-14 [@media(max-height:500px)]:grid-cols-[0.85fr_1.15fr] [@media(max-height:500px)]:items-center">
           <div className="min-w-0">
-            <p className="font-mono text-xs font-medium tracking-widest text-brand uppercase">
-              How it compiles
-            </p>
-            <ol className="mt-4 grid grid-cols-7 gap-1.5">
+            {/* One line from source to run; on a narrow screen it lies flat above the text. */}
+            <ol aria-label="Steps" className="grid grid-cols-7 gap-1.5 lg:grid-cols-1 lg:gap-0">
               {stages.map((step, index) => (
                 <li key={step.tab}>
                   <button
                     type="button"
                     onClick={() => pick(index)}
-                    className="group w-full text-left"
+                    className="group flex w-full flex-col gap-2 text-left lg:flex-row lg:items-center lg:gap-4"
                   >
-                    <span className="block h-1 overflow-hidden rounded-full bg-fd-border">
+                    <span className="block h-1 w-full overflow-hidden rounded-full bg-fd-border lg:h-9 lg:w-1 lg:rounded-none">
                       <span
                         ref={(bar) => {
                           bars.current[index] = bar;
                         }}
-                        className="block h-full origin-left rounded-full bg-gradient-to-r from-brand to-brand-2"
-                        style={{ transform: `scaleX(${index === 0 ? 1 : 0})` }}
+                        className="block size-full origin-top-left bg-brand [scale:var(--fill)_1] lg:[scale:1_var(--fill)]"
+                        style={{ '--fill': index === 0 ? 1 : 0 } as CSSProperties}
                       />
                     </span>
                     <span
                       className={cn(
-                        'mt-2 block truncate font-mono text-[10px] transition-colors sm:text-[11px]',
+                        'block truncate font-display text-[10px] font-semibold tracking-[0.14em] uppercase transition-colors sm:text-[13px]',
                         index === stage
-                          ? 'text-fd-foreground'
+                          ? 'text-brand'
                           : 'text-fd-muted-foreground group-hover:text-fd-foreground',
                       )}
                     >
@@ -108,7 +106,7 @@ export function Pipeline({ source }: { source: Token[][] }) {
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.18, ease: 'easeOut' }}
                 >
-                  <h2 className="text-2xl font-semibold tracking-tight text-balance sm:text-4xl">
+                  <h2 className="font-display text-3xl font-bold text-balance sm:text-5xl">
                     {stages[stage].title}
                   </h2>
                   <p className="mt-3 text-sm text-fd-muted-foreground text-pretty sm:mt-4 sm:text-base">

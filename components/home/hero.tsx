@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { type CSSProperties, useEffect, useState } from 'react';
 import type { Token } from '@/lib/highlight';
 import { CodeLines } from './code-lines';
+import { Choices } from './commands';
 import { CursorMuncher } from './cursor-muncher';
+import { installChoices } from './install-steps';
 import { Window } from './window';
 
 const command = 'peeper run src/main.peep';
@@ -23,7 +25,14 @@ function rise(delay: number, distance: number, blur = 0) {
 }
 
 /** The first screen: what Peeper is, a program, and what it prints. */
-export function Hero({ lines }: { lines: Token[][] }) {
+export function Hero({
+  lines,
+  commands,
+}: {
+  lines: Token[][];
+  /** The colored tokens of each install command, keyed by command. */
+  commands: Record<string, Token[]>;
+}) {
   const reduce = useReducedMotion();
   const codeStart = 0.5;
   const step = 0.06;
@@ -48,7 +57,7 @@ export function Hero({ lines }: { lines: Token[][] }) {
             Pre-release · the compiler is being rebuilt in Rust
           </div>
 
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="mt-6 font-display text-5xl font-bold sm:text-6xl lg:text-7xl">
             {[headline, highlighted].map((words, line) => (
               <span
                 key={words[0]}
@@ -77,7 +86,16 @@ export function Hero({ lines }: { lines: Token[][] }) {
             Windows.
           </p>
 
-          <div style={rise(0.35, 12)} className="hero-rise mt-9 flex flex-wrap items-center gap-3">
+          <div style={rise(0.3, 12)} className="hero-rise mt-8 max-w-xl">
+            <Choices
+              note="install the compiler"
+              choices={installChoices}
+              tokens={commands}
+              title="install"
+            />
+          </div>
+
+          <div style={rise(0.35, 12)} className="hero-rise mt-6 flex flex-wrap items-center gap-3">
             <Link
               href="/docs/installation"
               className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand to-brand-2 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:shadow-brand/40 hover:brightness-110"
@@ -151,14 +169,14 @@ function useTyped(text: string, startMs: number, reduce: boolean | null) {
   return text.slice(0, count);
 }
 
-/** The hero's backdrop: a faded grid and two slow, drifting glows, moved by CSS alone. */
+/** The hero's backdrop: faded ripples and two slow, drifting glows, moved by CSS alone. */
 function Backdrop() {
   return (
     <div
       aria-hidden="true"
       className="absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
     >
-      <div className="hero-grid absolute inset-0 opacity-60" />
+      <div className="hero-ripples absolute inset-0 opacity-60" />
       <div className="hero-glow hero-glow-brand absolute -top-88 left-[calc(10%-12rem)] size-[56rem]" />
       <div className="hero-glow hero-glow-warm absolute -top-40 right-[calc(5%-15rem)] size-[58rem]" />
     </div>
