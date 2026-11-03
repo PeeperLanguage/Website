@@ -137,6 +137,41 @@ test('mascot restores cursor and cancels effects on unmount, remount and reduced
     runFrames();
     assert.equal(frames.size, 0, 'and sleeps again');
     cleanupStill();
+    frames.clear();
+    // Pointer moves made while the frog is off screen must not be saved up for when it comes back.
+    const awayFrog = new Element();
+    awayFrog.id = 'away';
+    const cleanupAway = mountCursorMuncher(awayFrog);
+    runFrames();
+    for (let i = 0; i < 500; i++) {
+      window.dispatchEvent(
+        Object.assign(new Event('pointermove'), { clientX: i % 2 ? 100 : 200, clientY: 5 }),
+      );
+    }
+    sights.at(-1)([{ isIntersecting: true }]);
+    window.dispatchEvent(new Event('scroll'));
+    const awayShapes = awayFrog.querySelector('[data-shapes]').children;
+    const coordinates = (shape) =>
+      shape
+        .getAttribute('d')
+        .match(/-?[\d.]+|NaN|Infinity/g)
+        .map(Number);
+    const bodyAtRest = coordinates(awayShapes[0]);
+    const start = performance.now();
+    for (let step = 1; frames.size > 0 && step < 40; step++) {
+      const pending = [...frames];
+      frames.clear();
+      for (const [, callback] of pending) callback(start + step * 16);
+      const moved = Math.max(
+        ...coordinates(awayShapes[0]).map((value, index) => Math.abs(value - bodyAtRest[index])),
+      );
+      assert.ok(moved < 1, `the body stays still on coming back, moved ${moved} at step ${step}`);
+    }
+    assert.ok(
+      coordinates(awayShapes[6]).every(Number.isFinite),
+      'the pupils are still drawn on coming back',
+    );
+    cleanupAway();
     for (const reduced of [false, false, true]) {
       reduce = reduced;
       const cleanup = mountCursorMuncher(container);
