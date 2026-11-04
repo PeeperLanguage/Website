@@ -1,0 +1,89 @@
+---
+title: Methods
+description: Functions of a struct, called by its name or with a dot.
+---
+
+## Functions of a type
+
+ `fn Point::name(...)` declares a function of the struct `Point`, called as
+ `Point::name(...)`. Only the module that declares `Point` can declare its
+ functions, so `Point` has the same functions everywhere. As with other names,
+ another module reaches one only when its name starts with an upper case
+ letter.
+
+```peeper
+struct Point { x: i32, y: i32 }
+
+fn Point::new(x: i32, y: i32) -> Point {
+    return .{ x = x, y = y };
+}
+
+let origin = Point::new(0, 0);
+```
+
+## Methods
+
+ A function whose first parameter is `self`, `&self` or `&mut self` is a
+ method. `p.name(...)` calls it and passes `p` as that parameter says: `self`
+ moves or copies `p`, `&self` lends it, and `&mut self` lends it to change it,
+ so `p` must be `mut`. Through a reference `r`, `r.name()` passes what `r`
+ refers to. `p.sum()` is the same call as `Point::sum(&p)`.
+
+<Terminal run="auto">
+
+```peeper
+struct Counter { value: i32 }
+
+fn Counter::bump(&mut self) {
+    self.value = self.value + 1;
+}
+
+fn main() {
+    let counter = Counter.{ value = 0 };
+    counter.bump();
+}
+```
+
+</Terminal>
+
+<Terminal run="auto">
+
+```peeper title="examples/18_methods.peep"
+// Methods: `fn Point::name(...)` declares a function of the struct `Point`,
+// called as `Point::name(...)`. A first parameter `self`, `&self` or
+// `&mut self` makes it a method, also called as `p.name(...)`, which moves
+// `p`, lends it or lends it mutably, as that parameter says. Only `Point`'s
+// own module declares its functions.
+// Run: peeper run examples/18_methods.peep
+struct Point { x: i32, y: i32 }
+
+fn Point::new(x: i32, y: i32) -> Point {   // no `self`: called `Point::new`
+    return .{ x = x, y = y };
+}
+
+fn Point::sum(&self) -> i32 {              // lends the point
+    return self.x + self.y;
+}
+
+fn Point::scale(&mut self, by: i32) {      // lends it, to change it
+    self.x = self.x * by;
+    self.y = self.y * by;
+}
+
+fn Point::flipped(self) -> Point {         // takes the point, moved in
+    return .{ x = self.y, y = self.x };
+}
+
+fn main() {
+    let mut p = Point::new(1, 2);
+    p.scale(3);                            // as `Point::scale(&mut p, 3)`
+    println("scaled:", p, "sum:", p.sum());
+    let r = &p;
+    println("through a reference:", r.sum());
+    let q = p.flipped();                   // `p` moves; it is unset now
+    println("flipped:", q, Point::sum(&q));
+    println("chained:", Point::new(4, 5).flipped().sum());
+}
+```
+
+</Terminal>
