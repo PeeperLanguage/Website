@@ -1,3 +1,4 @@
+import { SHIKI_THEMES } from '@/lib/highlight/code-theme';
 import type { Token } from '@/lib/highlight/highlight';
 
 const types = 'i32|i64|i1|u32|bool|ptr|void';
@@ -17,15 +18,27 @@ const isType = new RegExp(`^(?:${types})$`);
 const isControlFlow = new RegExp(`^(?:${controlFlow})$`);
 const isNumber = /^(?:0x[\da-f]+|\d+)$/;
 
-const plain = { light: 'inherit', dark: 'inherit' };
-const strong = { light: 'var(--color-fd-foreground)', dark: 'var(--color-fd-foreground)' };
-const faint = { light: '#9ca3af', dark: '#5b6470' };
-const nameColors = { light: '#0f766e', dark: '#3fb8af' };
-const numberColors = { light: '#2563eb', dark: '#79b8ff' };
-const typeColors = { light: '#b45309', dark: '#e8933d' };
-const symbolColors = { light: '#7c3aed', dark: '#d2a8ff' };
-const controlColors = { light: '#dc2626', dark: '#f87171' };
-const promptColors = { light: 'var(--color-brand)', dark: 'var(--color-brand)' };
+/** A token's colors in the site's light and dark modes, the same in every code theme. */
+function colors(light: string, dark: string): Pick<Token, 'style'> {
+  return {
+    style: Object.fromEntries(
+      Object.keys(SHIKI_THEMES).map((key) => [
+        `--shiki-${key}`,
+        key.endsWith('-dark') ? dark : light,
+      ]),
+    ),
+  };
+}
+
+const plain = colors('inherit', 'inherit');
+const strong = colors('var(--color-fd-foreground)', 'var(--color-fd-foreground)');
+const faint = colors('#9ca3af', '#5b6470');
+const nameColors = colors('#0f766e', '#3fb8af');
+const numberColors = colors('#2563eb', '#79b8ff');
+const typeColors = colors('#b45309', '#e8933d');
+const symbolColors = colors('#7c3aed', '#d2a8ff');
+const controlColors = colors('#dc2626', '#f87171');
+const promptColors = colors('var(--color-brand)', 'var(--color-brand)');
 
 /** The color of one colored part of a line of compiler text. */
 function partColors(part: string) {

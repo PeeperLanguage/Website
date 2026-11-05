@@ -1,6 +1,8 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { BookOpen, Compass, type LucideIcon, SquareTerminal } from 'lucide-react';
+import { ThemeSwitches } from '@/components/code-theme/theme-switches';
 import { Mascot } from '@/components/mascot';
+import { SEARCH_TRIGGER } from '@/components/search/search-button';
 import { appName, compilerUrl } from './shared';
 
 /** A link's label with its icon: the desktop navbar shows only `text`, so the icon lives in it. */
@@ -29,5 +31,6 @@ export function baseOptions(): BaseLayoutProps {
       { text: linkText(SquareTerminal, 'Playground'), url: '/playground' },
     ],
     githubUrl: compilerUrl,
+    slots: { themeSwitch: ThemeSwitches, searchTrigger: SEARCH_TRIGGER },
   };
 }

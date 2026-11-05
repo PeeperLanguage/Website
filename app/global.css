@@ -8,6 +8,9 @@
 }
 
 @theme {
+  /* Every popover menu fades in and out, with no grow and shrink. */
+  --animate-fd-popover-in: fd-fade-in 150ms ease;
+  --animate-fd-popover-out: fd-fade-out 150ms ease;
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   /* Cool paper with a little of the mascot's teal in it. */
@@ -58,6 +61,26 @@
   --color-fd-muted: hsl(222, 14%, 16%);
   --color-fd-secondary: hsl(222, 14%, 18%);
   --color-fd-muted-foreground: hsl(215, 14%, 74%);
+}
+
+/*
+ * The sidebar's footer row: its links and components/code-theme/theme-switches.tsx, spaced
+ * evenly with no box around them. Fumadocs gives the row no class of its own.
+ */
+#nd-sidebar :has(> [data-theme-switches]) {
+  justify-content: space-between;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+#nd-sidebar :has(> [data-theme-switches]) > a {
+  width: calc(var(--spacing) * 9); /* as tall as the switches beside it */
+  height: calc(var(--spacing) * 9);
+  border-radius: 9999px;
+}
+#nd-sidebar [data-theme-switches],
+#nd-sidebar [data-theme-switches] > div {
+  display: contents;
 }
 
 ::selection {
@@ -114,16 +137,6 @@ html > body[data-scroll-locked] {
     scrollbar-width: thin;
     scrollbar-color: var(--color-fd-border) transparent;
   }
-}
-
-/* A highlighted token's colors, from lib/highlight/highlight.ts. */
-.token {
-  color: var(--token-light);
-  font-style: var(--token-light-style, normal);
-}
-.dark .token {
-  color: var(--token-dark);
-  font-style: var(--token-dark-style, normal);
 }
 
 .text-gradient {

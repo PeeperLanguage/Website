@@ -1,5 +1,6 @@
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { DocsItem, DocsItemHover } from '@/components/docs/docs-item';
+import { DocsItem } from '@/components/docs/docs-item';
+import { HoverGroup } from '@/components/hover-marker/hover-marker';
 import { MotionProvider } from '@/components/motion-provider';
 import { baseOptions } from '@/lib/layout.shared';
 import { source } from '@/lib/source';
@@ -8,7 +9,7 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
   return (
     <MotionProvider>
       {/* The sidebar lists every page, so the top links would only repeat it. */}
-      <DocsItemHover>
+      <HoverGroup>
         <DocsLayout
           tree={source.getPageTree()}
           {...baseOptions()}
@@ -18,7 +19,7 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
         >
           {children}
         </DocsLayout>
-      </DocsItemHover>
+      </HoverGroup>
     </MotionProvider>
   );
 }

@@ -39,21 +39,14 @@ export function CodeLine({ number, tokens }: { number: number; tokens: Token[] }
   );
 }
 
-/** Highlighted text, in the site's light or dark colors. */
+/** Highlighted text, in the picked code theme (`CODE_THEME_CSS`). */
 export function CodeTokens({ tokens }: { tokens: Token[] }) {
   return tokens.map((token, at) => (
     <span
       // biome-ignore lint/suspicious/noArrayIndexKey: tokens have no other identity
       key={at}
       className="token"
-      style={
-        {
-          '--token-light': token.light,
-          '--token-dark': token.dark,
-          '--token-light-style': token.lightStyle,
-          '--token-dark-style': token.darkStyle,
-        } as CSSProperties
-      }
+      style={token.style as CSSProperties}
     >
       {token.content}
     </span>

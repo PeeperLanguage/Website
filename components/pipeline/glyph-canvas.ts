@@ -1,4 +1,5 @@
 import { between, eased, sweepTurn, unit } from '@/lib/easing';
+import { shownCodeTheme } from '@/lib/highlight/code-theme';
 import type { Token } from '@/lib/highlight/highlight';
 import type { Glyph } from './glyphs';
 
@@ -31,10 +32,10 @@ export function fitCanvas(canvas: HTMLCanvasElement, rowHeights: number[], count
 /** The color of a token in the site's theme, as a canvas takes it: `canvas`'s CSS resolves it. */
 function themeInk(canvas: HTMLCanvasElement) {
   const style = getComputedStyle(canvas);
-  const dark = document.documentElement.classList.contains('dark');
+  const shown = `--shiki-${shownCodeTheme()}`;
   const known = new Map<string, string>();
   return (token: Token) => {
-    const color = dark ? token.dark : token.light;
+    const color = token.style[shown] ?? 'inherit';
     let ink = known.get(color);
     if (!ink) {
       const variable = color.match(/^var\((.+)\)$/)?.[1];
