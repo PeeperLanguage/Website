@@ -49,7 +49,7 @@ import { FileTree } from './file-tree';
 
 const QUIET_MS = 200; // after the last key, so typing never waits on a check
 const LIMIT_MS = 10_000; // a run past this is ended, as a loop may never finish
-const VERSION = '0.2.0'; // shortcut: set by hand, update it with `peeper-check.wasm`
+const VERSION = '0.2.0'; // shortcut: set by hand, update it with `peeper.wasm`
 
 function newWorker() {
   return new Worker(new URL('../../lib/compiler/check-worker.ts', import.meta.url));

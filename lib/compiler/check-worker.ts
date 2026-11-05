@@ -5,7 +5,7 @@ import { CHECKER_FAILED, type CheckReply, type CheckRequest, type RunReply } fro
 // program that reads a request from stdin and writes its findings to stdout.
 // This gives it those two streams, and the few other calls Rust's standard
 // library makes; it touches no disk here, so the rest report that none is there.
-const checker = WebAssembly.compileStreaming(fetch('/peeper-check.wasm'));
+const checker = WebAssembly.compileStreaming(fetch('/peeper.wasm'));
 
 const SUCCESS = 0;
 const NO_SUCH_FILE_DESCRIPTOR = 8;
