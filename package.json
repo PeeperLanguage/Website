@@ -10,7 +10,7 @@
     "lint": "biome check",
     "test": "node --test \"components/**/*.test.mjs\" \"lib/**/*.test.mjs\"",
     "format": "biome format --write",
-    "checker": "cargo build --manifest-path ../compiler/Cargo.toml -p browser --profile wasm --target wasm32-wasip1 && cp ../compiler/target/wasm32-wasip1/wasm/browser.wasm public/peeper-check.wasm"
+    "checker": "cargo build --manifest-path ../compiler/Cargo.toml -p browser --profile wasm --target wasm32-wasip1 && cp ../compiler/target/wasm32-wasip1/wasm/browser.wasm public/peeper.wasm"
   },
   "dependencies": {
     "@shikijs/monaco": "4.5.0",
