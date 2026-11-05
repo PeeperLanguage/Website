@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { sweepTurn } from '../../lib/easing.ts';
 import { glyphsOf, matchGlyphs } from './glyphs.ts';
 
-const token = (content) => ({ content, light: 'black', dark: 'white' });
+const token = (content) => ({ content, style: {} });
 const row = (text, group, index = 0) =>
   glyphsOf([token(text)], { group, row: index, previous: index, next: index });
 const text = (glyphs) => glyphs.map(({ char }) => char).join('');

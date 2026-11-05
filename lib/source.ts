@@ -4,7 +4,7 @@ import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
 import { applyMdxPreset } from 'fumadocs-mdx/config';
 import { defineDocs } from 'fumadocs-mdx/macro';
 import { remarkTerminal } from '../components/docs/remark-terminal';
-import { CODE_THEME } from './highlight/code-theme';
+import { SHIKI_THEMES } from './highlight/code-theme';
 import { peeper } from './highlight/peeper';
 import { docsRoute } from './shared';
 
@@ -15,7 +15,8 @@ const docs = defineDocs({
     mdxOptions: applyMdxPreset({
       remarkPlugins: [remarkTerminal],
       rehypeCodeOptions: {
-        themes: CODE_THEME,
+        themes: SHIKI_THEMES,
+        defaultColor: false,
         langs: [peeper],
       },
     }),

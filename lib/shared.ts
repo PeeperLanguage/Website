@@ -6,13 +6,6 @@ export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
 export const compilerUrl = 'https://github.com/PeeperLanguage/compiler';
 
-// The repository these docs pages live in, for their "view source" links.
-export const gitConfig = {
-  user: 'PeeperLanguage',
-  repo: 'website',
-  branch: 'main',
-};
-
 const getContentUrl = createGetUrl(docsContentRoute);
 
 export function getPageMarkdownUrl(page: { slugs: string[]; locale?: string }) {

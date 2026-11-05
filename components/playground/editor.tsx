@@ -6,11 +6,10 @@ import type { HighlighterCore } from 'shiki/core';
 import { CodeTokens } from '@/components/code/code-card';
 import type { Entry } from '@/lib/compiler/checker';
 import { languageOf } from '@/lib/compiler/project';
-import { CODE_THEME } from '@/lib/highlight/code-theme';
+import { SHIKI_THEMES, shownCodeTheme } from '@/lib/highlight/code-theme';
 import { codeTokens, highlighter, type Token } from '@/lib/highlight/highlight';
 
 const LANGUAGE = 'peeper';
-const THEMES = { light: 'peeper-light', dark: 'peeper-dark' };
 
 // The site's code colors on `--color-fd-card`, as Monaco takes only hex.
 const COLORS = {
@@ -34,12 +33,12 @@ async function setUpMonaco() {
   // @ts-expect-error
   const api: typeof Monaco = await import('monaco-editor/esm/vs/editor/edcore.main.js');
   const shiki = await highlighter;
-  for (const [mode, name] of Object.entries(THEMES) as ['light' | 'dark', string][]) {
-    const { background, lineHighlight } = COLORS[mode];
-    const theme = shiki.getTheme(CODE_THEME[mode]);
+  for (const [key, input] of Object.entries(SHIKI_THEMES)) {
+    const { background, lineHighlight } = COLORS[key.endsWith('-dark') ? 'dark' : 'light'];
+    const theme = shiki.getTheme(typeof input === 'string' ? input : (input.name ?? key));
     await shiki.loadTheme({
       ...theme,
-      name,
+      name: monacoTheme(key),
       colors: {
         ...theme.colors,
         'editor.background': background,
@@ -96,7 +95,7 @@ function CodePreview({
       ? starting.lines
       : shiki
         ? codeTokens(shiki, text, languageOf(file))
-        : text.split('\n').map((content) => [{ content, light: 'inherit', dark: 'inherit' }]);
+        : text.split('\n').map((content) => [{ content, style: {} }]);
   return (
     <pre className="w-max min-w-full font-mono text-sm leading-[19px] [font-feature-settings:'calt'_0,'liga'_0]">
       {lines.map((tokens, index) => (
@@ -117,8 +116,13 @@ function CodePreview({
   );
 }
 
+/** Monaco's name for the `SHIKI_THEMES` theme `key`, with the site's own background. */
+function monacoTheme(key: string) {
+  return `peeper-${key}`;
+}
+
 function siteTheme() {
-  return document.documentElement.classList.contains('dark') ? THEMES.dark : THEMES.light;
+  return monacoTheme(shownCodeTheme());
 }
 
 /** What Monaco shows for `entry`: a wavy line, and all it said on hover. */
@@ -203,7 +207,7 @@ export function Editor({
         });
         document.fonts.ready.then(() => api.editor.remeasureFonts());
         const themes = new MutationObserver(() => api.editor.setTheme(siteTheme()));
-        themes.observe(document.documentElement, { attributeFilter: ['class'] });
+        themes.observe(document.documentElement, { attributeFilter: ['class', 'data-code-theme'] });
         // A phone has no width to spare for the minimap.
         const wide = matchMedia('(min-width: 768px)');
         const fitMinimap = () => view.updateOptions({ minimap: { enabled: wide.matches } });

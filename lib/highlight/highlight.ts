@@ -1,22 +1,21 @@
 import { createHighlighterCore, type HighlighterCore } from 'shiki/core';
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
 import { bundledThemes } from 'shiki/themes';
-import { CODE_THEME } from './code-theme';
+import { SHIKI_THEMES } from './code-theme';
 import { peeper } from './peeper';
 
-/** One colored piece of a line: its text and its light and dark colors. */
+/** One colored piece of a line: its text, and its color and font style in each of `SHIKI_THEMES`. */
 export interface Token {
   content: string;
-  light: string;
-  dark: string;
-  lightStyle?: string; // italic, for one
-  darkStyle?: string;
+  style: Record<string, string>; // `--shiki-<theme>` and `--shiki-<theme>-font-style`
 }
 
-// Only a project's two languages and the two themes. The home page's shell commands add `sh`
+// Only a project's two languages and the site's themes. The home page's shell commands add `sh`
 // on the server, in `commandTokens`, so the playground never loads it.
 export const highlighter = createHighlighterCore({
-  themes: [bundledThemes[CODE_THEME.light], bundledThemes[CODE_THEME.dark]],
+  themes: Object.values(SHIKI_THEMES).map((theme) =>
+    typeof theme === 'string' ? bundledThemes[theme] : theme,
+  ),
   langs: [peeper, import('shiki/langs/toml.mjs')],
   engine: createJavaScriptRegexEngine(),
 });
@@ -25,17 +24,11 @@ export const highlighter = createHighlighterCore({
 export function codeTokens(highlighter: HighlighterCore, code: string, lang: string): Token[][] {
   const { tokens } = highlighter.codeToTokens(code, {
     lang,
-    themes: CODE_THEME,
+    themes: SHIKI_THEMES,
     defaultColor: false,
   });
   return tokens.map((line) =>
-    line.map((token) => ({
-      content: token.content,
-      light: token.htmlStyle?.['--shiki-light'] ?? 'inherit',
-      dark: token.htmlStyle?.['--shiki-dark'] ?? 'inherit',
-      lightStyle: token.htmlStyle?.['--shiki-light-font-style'],
-      darkStyle: token.htmlStyle?.['--shiki-dark-font-style'],
-    })),
+    line.map((token) => ({ content: token.content, style: token.htmlStyle ?? {} })),
   );
 }
 

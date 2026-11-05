@@ -31,7 +31,10 @@ export function useGlyphCanvas(
     const resized = new ResizeObserver(measure);
     if (sizedBox.current) resized.observe(sizedBox.current);
     const themed = new MutationObserver(measure);
-    themed.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    themed.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'data-code-theme'],
+    });
     document.fonts.ready.then(measure);
     return () => {
       resized.disconnect();
