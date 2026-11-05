@@ -1,0 +1,94 @@
+---
+title: Methods
+description: Functions of a struct, called by its name or with a dot.
+---
+
+## Functions of a type
+
+ `fn Point::name(...)` declares a function of the struct `Point`, called as
+ `Point::name(...)`. Only the module that declares `Point` can declare its
+ functions, so `Point` has the same functions everywhere. As with other names,
+ another module reaches one only when its name starts with an upper case
+ letter. An alias is another name for its type, functions included:
+ after `type Place = Point;`, `Place::new(0, 0)` is `Point::new(0, 0)`.
+
+```peeper
+struct Point { x: i32, y: i32 }
+
+fn Point::new(x: i32, y: i32) -> Point {
+    return .{ x = x, y = y };
+}
+
+fn main() {
+    let origin = Point::new(0, 0);
+    println(origin);
+}
+```
+
+## Methods
+
+ A function whose first parameter is `self`, `&self` or `&mut self` is a
+ method. `p.name(...)` calls it and passes `p` as that parameter says: `self`
+ moves or copies `p`, `&self` lends it, and `&mut self` lends it to change it,
+ so `p` must be `mut`. Through a reference `r`, `r.name()` passes what `r`
+ refers to. `p.sum()` is the same call as `Point::sum(&p)`.
+
+<Terminal run="auto">
+
+```peeper
+struct Counter { value: i32 }
+
+fn Counter::bump(&mut self) {
+    self.value = self.value + 1;
+}
+
+fn main() {
+    let mut counter = Counter.{ value = 0 };
+    counter.bump();
+    println(counter);
+}
+```
+
+</Terminal>
+
+<Terminal run="auto">
+
+```peeper title="examples/18_type_functions.peep"
+// A type's functions: `fn Point::name` declares a function of the struct
+// `Point`, in the module that declares `Point`. Called by its path,
+// `Point::name(...)`, it is a plain function. One that takes `self` first
+// is also called with a dot, `p.name(...)`, which gives `p` as `self`:
+// `self` takes the value, `&self` borrows it and `&mut self` borrows it to
+// change it. The dot borrows by itself; the path does not.
+// Run: peeper run examples/18_type_functions.peep
+struct Point { x: i32, y: i32 }
+
+fn Point::New(x: i32, y: i32) -> Point {    // no `self`: called by path
+    return .{ x = x, y = y };
+}
+
+fn Point::Sum(&self) -> i32 {
+    return self.x + self.y;
+}
+
+fn Point::Shift(&mut self, by: i32) {
+    self.x = self.x + by;
+    self.y = self.y + by;
+}
+
+fn Point::Swapped(self) -> Point {          // takes the point
+    return .{ x = self.y, y = self.x };
+}
+
+fn main() {
+    let mut p = Point::New(1, 2);
+    println("sum:", p.Sum(), Point::Sum(&p));   // the same call
+    p.Shift(10);                                // lends `p` as `&mut`
+    let view = &p;
+    println("through a reference:", view.Sum());
+    let q = p.Swapped();                        // `p` moves; it is unset now
+    println("swapped:", q, Point::New(3, 4).Swapped().Sum());
+}
+```
+
+</Terminal>
