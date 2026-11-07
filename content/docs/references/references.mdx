@@ -3,8 +3,8 @@ title: References and borrows
 description: Borrowing with & and &mut, the rules the compiler checks, and returned references.
 ---
 
-`&x` lends `x` to be read, and `&mut x` lends it to be changed. The rules
- follow Rust:
+`&x` lends `x` to be read, and `&mut x` lends it to be changed. The compiler
+ checks two rules:
 
  - While a `&mut` is in use, nothing else uses `x`.
  - `x` must outlive every reference to it.
@@ -52,13 +52,7 @@ fn higher(score: &Score) -> &i32 in score {
 
 <Terminal run="auto">
 
-```peeper title="examples/11_references.peep"
-// References: `&x` lends `x` to be read and `&mut x` to be changed, as in
-// Rust: while a `&mut` is in use nothing else uses `x`, and `x` must outlive
-// every reference to it. `.*` is the value a reference refers to; a field
-// is read through a reference directly. A function may return a reference;
-// `in` names the parameters it borrows from.
-// Run: peeper run examples/11_references.peep
+```peeper
 struct Point { x: i32, y: i32 }
 struct Score { best: i32, last: i32 }
 

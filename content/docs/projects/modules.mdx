@@ -1,0 +1,88 @@
+---
+title: Modules
+description: Files as modules, imports, and exported names.
+---
+
+Each file of a project is a module, and the `src` folder holds them.
+
+ - `import "package:path"` brings a module in. `path` is the file's path inside
+   `src`, without `.peep`.
+ - The module's names are then used as `module::Name`.
+ - A name that starts with an uppercase letter is exported. A lowercase name
+   stays inside its module. This holds for every kind of name: functions,
+   constants, structs, type aliases and the interfaces of a later page.
+ - The core library is the package `core`. Its `memory` module is shown on
+   the [Memory](/docs/low-level/memory) page.
+ - `peeper.toml` names the package and says what it builds.
+
+<Terminal run="auto">
+
+```toml title="peeper.toml"
+name = "modules"
+build = "program"
+```
+
+```peeper title="src/geometry.peep"
+// Exported: the name starts with an uppercase letter.
+fn Area(width: i64, height: u8) -> i64 {
+    return scale(width * height);
+}
+
+// Lowercase: only this module can use it.
+fn scale(value: i64) -> i64 {
+    return value * 2;
+}
+```
+
+```peeper title="src/shapes/square.peep"
+// A module in a folder: `import "modules:shapes/square"`.
+fn Of(side: i64) -> i64 {
+    return side * side;
+}
+```
+
+```peeper title="src/main.peep"
+import "modules:geometry";
+import "modules:shapes/square";
+
+fn main() {
+    println("area:", geometry::Area(21, 3u8));
+    println("square:", square::Of(21));
+}
+```
+
+</Terminal>
+
+Using a lowercase name from another module is an error:
+
+<Terminal run="auto">
+
+```peeper
+import "playground:geometry";
+
+fn main() {
+    println(geometry::scale(2));
+}
+```
+
+```peeper title="src/geometry.peep"
+fn scale(value: i64) -> i64 {
+    return value * 2;
+}
+```
+
+</Terminal>
+
+## Libraries
+
+ A package with `build = "lib"` in its `peeper.toml` is a library. It has no
+ `main`, so `peeper build` and `peeper run` refuse it, and `peeper check`
+ checks every file in its `src` folder, even one that no other file imports.
+
+```toml title="peeper.toml"
+name = "shapes"
+build = "lib"
+```
+
+ Another package cannot use a library yet: packages cannot name the
+ packages they depend on.

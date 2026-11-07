@@ -1,0 +1,5 @@
+{
+  "title": "Basics",
+  "icon": "Sprout",
+  "pages": ["first-program", "variables", "numbers", "functions", "conditions", "loops", "panics"]
+}

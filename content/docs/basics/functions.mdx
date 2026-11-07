@@ -1,0 +1,88 @@
+---
+title: Functions
+description: Parameters, results, and the exit code of main.
+---
+
+## Parameters and results
+
+ A function takes typed parameters and may give a result, written after `->`.
+ `return` gives the result and ends the function. A function without a result
+ ends at its last line.
+
+```peeper
+fn square(x: i64) -> i64 {
+    return x * x;
+}
+```
+
+ A function can be declared after the code that calls it. A parameter written
+ `_` is taken but has no name. A parameter can be `mut`, and then the function
+ can change its own copy.
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    println("square:", square(12));
+    println("first:", first(3, 99));
+    println("next:", next(5));
+    greet();
+}
+
+fn square(x: i64) -> i64 {
+    return x * x;
+}
+
+// A parameter written `_` is taken and names nothing.
+fn first(value: i32, _: i32) -> i32 {
+    return value;
+}
+
+// A `mut` parameter: the caller's value does not change.
+fn next(mut count: i32) -> i32 {
+    count = count + 1;
+    return count;
+}
+
+// Without a result, a function ends at its last line.
+fn greet() {
+    println("hello from peeper");
+}
+```
+
+</Terminal>
+
+## A function with a result must return
+
+ Every path through a function with a result must end in `return`. If one
+ does not, the compiler shows where the function can end without one:
+
+<Terminal run="auto">
+
+```peeper
+fn double(x: i32) -> i32 {
+    let result = x * 2;
+}
+
+fn main() {
+    println(double(4));
+}
+```
+
+</Terminal>
+
+## The exit code
+
+ When `main` gives an `i32`, that number is the program's exit code. 0 means
+ the program succeeded.
+
+<Terminal run="auto">
+
+```peeper
+fn main() -> i32 {
+    println("done");
+    return 0;
+}
+```
+
+</Terminal>

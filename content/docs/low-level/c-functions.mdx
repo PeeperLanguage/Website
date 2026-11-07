@@ -1,0 +1,90 @@
+---
+title: C functions
+description: C strings, calling the C library, and writing bytes to a file descriptor.
+---
+
+## C strings
+
+ `c"..."` is C text: its bytes end with a zero byte, as C functions expect.
+ Its type is `&cstr`. `println` writes it like other text, but a `&cstr` and
+ a `&str` are different types, and neither turns into the other.
+
+<Terminal run="auto">
+
+```peeper
+const Name: &cstr = c"peeper";
+
+fn main() {
+    println("name:", Name, c"and more");
+}
+```
+
+</Terminal>
+
+## extern
+
+ `#[extern("name")]` declares a function that the C library or the runtime
+ defines. It has no body. Its parameters and result can be numbers, `bool`,
+ `&cstr` or [pointers](/docs/low-level/pointers). Any `*T` passes where a
+ `rawptr` is expected.
+
+<Terminal run="auto">
+
+```peeper
+#[extern("abs")]
+fn absolute(n: i32) -> i32;
+
+#[extern("strlen")]
+fn length(text: &cstr) -> usize;
+
+#[extern("toupper")]
+fn upper(character: i32) -> i32;
+
+#[extern("malloc")]
+fn allocate(size: usize) -> *i32;
+
+#[extern("free")]
+fn release(memory: rawptr);
+
+fn main() {
+    println("abs:", absolute(-42), "strlen:", length(c"hello"), "toupper:", upper(97));
+
+    let heap = allocate(4);
+    if heap == none {
+        panic "out of memory";
+    }
+    heap.* = 34;
+    println("heap:", heap.*);
+    release(heap);
+}
+```
+
+</Terminal>
+
+## Write and Exit
+
+ The core library declares `Write`, `Read` and `Exit` this way, and they need
+ no import:
+
+ - `Write(fd, text, count)` writes `count` bytes of a `&cstr` to a file
+   descriptor: `Stdout` or `Stderr`.
+ - `Exit(code)` ends the program at once with that exit code.
+
+<Terminal>
+
+```peeper
+fn main() {
+    Write(Stdout, c"written to stdout\n", 18);
+    Write(Stderr, c"written to stderr\n", 18);
+    Exit(3);                        // ends the program with exit code 3
+}
+```
+
+</Terminal>
+
+```terminal title="peeper run"
+written to stdout
+written to stderr
+```
+
+The program ends with exit code 3.

@@ -1,4 +1,4 @@
 {
   "title": "Peeper",
-  "pages": ["(start)", "language", "tools"]
+  "pages": ["(start)", "basics", "data", "references", "projects", "methods", "compile-time", "low-level", "tools"]
 }

@@ -1,0 +1,55 @@
+---
+title: Panics
+description: Stopping the program with panic, and the checks made while it runs.
+---
+
+## panic
+
+ `panic "message"` stops the program with exit code 101 and writes the
+ message. A path that ends in a panic needs no `return`.
+
+<Terminal run>
+
+```peeper
+fn half(n: i32) -> i32 {
+    if n % 2 == 0 {
+        return n / 2;
+    }
+    panic "odd number given";
+}
+
+fn main() {
+    println("half of 8:", half(8));
+    println("half of 7:", half(7)); // stops: "panic: odd number given"
+    println("never printed");
+}
+```
+
+</Terminal>
+
+The program ends with exit code 101.
+
+## Checks while running
+
+ The program also stops this way when a check fails while it runs:
+
+ - a division by zero;
+ - a range step of 0, shown on the [Loops](/docs/basics/loops) page.
+
+ The message says where it stopped. When the compiler can already see the
+ problem, it is an error instead, and the program is not built.
+
+<Terminal run>
+
+```peeper
+fn divide(a: i32, b: i32) -> i32 {
+    return a / b;
+}
+
+fn main() {
+    println("10 / 2 =", divide(10, 2));
+    println("10 / 0 =", divide(10, 0));
+}
+```
+
+</Terminal>

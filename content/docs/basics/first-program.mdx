@@ -1,0 +1,63 @@
+---
+title: First program
+description: main, printing values, and comments.
+---
+
+## main
+
+ A program starts at the function `main`. `println` writes its values and then
+ a newline.
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    println("hello, world");
+}
+```
+
+</Terminal>
+
+## Printing values
+
+ `println` takes any number of values and puts a space between each one.
+ `print` does the same without the newline, and `println()` alone writes only
+ a newline. Text in double quotes is written as it is, and `\n` in it is a
+ newline.
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    println("numbers:", 42, -5, 0.5, 1e16);
+    println("bools:", true, false);
+    println("sum:", 2 + 3, "product:", 2 * 3);
+    print("no newline,");
+    print(" then one");
+    println();
+    print("two\nlines\n");
+}
+```
+
+</Terminal>
+
+ Later pages show printing arrays, structs and references: `println` writes
+ each of them whole.
+
+## Comments
+
+ `//` starts a comment that runs to the end of the line. `/*` and `*/` mark a
+ comment that can span lines. The compiler skips both.
+
+<Terminal run="auto">
+
+```peeper
+// The whole line is a comment.
+fn main() {
+    println("shown");   // a comment after code
+    /* println("not run");
+       println("nor this"); */
+}
+```
+
+</Terminal>

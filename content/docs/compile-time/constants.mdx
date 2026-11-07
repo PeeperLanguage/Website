@@ -1,0 +1,113 @@
+---
+title: Constants
+description: Values worked out while compiling, and functions called to work them out.
+---
+
+## const
+
+ `const` names a value the compiler works out while compiling. If the constant
+ has no type, it takes the type of the place it is used in. A constant can also
+ be declared inside a function body, and it can use one declared later.
+
+<Terminal run="auto">
+
+```peeper
+const Limit = 10;                   // its type comes from where it is used
+const Answer: i32 = Limit * 4 + 2;  // or is written
+
+fn main() -> i32 {
+    const Local = 3;                // a constant inside a body
+    let wide: i64 = Limit;          // `Limit` is an `i64` here
+    println("values:", wide, Answer, Local);
+    return Answer - 42;             // exit code 0
+}
+```
+
+</Terminal>
+
+ A constant's value must be known while compiling, so a variable cannot give
+ it one:
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let x: i64 = 3;
+    const Twice = x * 2;
+    println(Twice);
+}
+```
+
+</Terminal>
+
+## Calls while compiling
+
+ A constant's value can call a function. The call runs while compiling, and
+ the program only holds its result. The function can use variables, loops,
+ branches, calls, structs, arrays and references. Printing only runs
+ in the program for now. The same function can still be called normally when
+ the program runs.
+
+<Terminal run="auto">
+
+```peeper
+struct Pair { a: u64, b: u64 }
+
+fn fib(n: u32) -> u64 {
+    let mut pair = Pair.{ a = 0, b = 1 };
+    for 0..n {
+        let next = pair.a + pair.b;
+        pair.a = pair.b;
+        pair.b = next;
+    }
+    return pair.a;
+}
+
+fn factorial(n: u64) -> u64 {
+    if n <= 1 {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+fn bump(n: &mut i32) {
+    n.* = n.* + 1;
+}
+
+fn bumped(start: i32) -> i32 {
+    let mut n = start;
+    bump(&mut n);
+    return n;
+}
+
+const Fib90 = fib(90);
+const Big = factorial(20) + 1;
+const Next = bumped(41);
+
+fn main() {
+    const Local = fib(10) * 2;      // in a body too
+    println("constants:", Fib90, Big, Next, Local);
+    println("at run time:", fib(20)); // the same function, run as usual
+}
+```
+
+</Terminal>
+
+ A call that prints, or that panics, stops the build and shows why:
+
+<Terminal run="auto">
+
+```peeper
+fn loud() -> i32 {
+    println("hi");
+    return 1;
+}
+
+const One = loud();
+
+fn main() {
+    println(One);
+}
+```
+
+</Terminal>

@@ -14,9 +14,9 @@ description: Integers of any width, floats, how values widen, and casts with as.
  separate digits.
 
 ```peeper
-const Bits: u8 = 1u8 << 7;          // 128
-const Big: i128 = 1i128 << 100;
-const Odd: u24 = 0xFF_FFFF;         // hex, with `_` between digits
+let bits: u8 = 1u8 << 7;            // 128
+let big: i128 = 1i128 << 100;
+let odd: u24 = 0xFF_FFFF;           // hex, with `_` between digits
 ```
 
 ## Widening
@@ -33,26 +33,20 @@ let unsigned: u32 = small;
 
 <Terminal run="auto">
 
-```peeper title="examples/02_numbers.peep"
-// Numbers: signed `i` and unsigned `u` integers of any width from 1 to 2^23
-// bits (`i8`, `u24`, `i200`, ...), `usize` as wide as a pointer, and `f32`
-// and `f64` floats. A literal takes the type it is used as, or the one its
-// suffix names; constants fold while compiling.
-// Run: peeper run examples/02_numbers.peep
-const Bits: u8 = 1u8 << 7;          // 128
-const Big: i128 = 1i128 << 100;
-const Odd: u24 = 0xFF_FFFF;         // hex, with `_` between digits
-const Half: f32 = 0.5f32;
-
+```peeper
 fn main() {
-    println("constants:", Bits, Big, Odd, Half);
+    let bits: u8 = 1u8 << 7;
+    let big: i128 = 1i128 << 100;
+    let odd: u24 = 0xFF_FFFF;
+    let half: f32 = 0.5f32;
+    println("literals:", bits, big, odd, half);
 
     // A value widens on its own when the new type holds every value of the
-    // old one; anything else needs `as` (examples/03_casts.peep).
+    // old one; anything else needs `as`.
     let small: u8 = 200;
     let signed: i16 = small;
     let unsigned: u32 = small;
-    let float: f64 = Half;
+    let float: f64 = half;
     println("widened:", signed, unsigned, float);
 
     // The result of an operator has the left operand's type.
@@ -97,11 +91,7 @@ fn main() {
 
 <Terminal run="auto">
 
-```peeper title="examples/03_casts.peep"
-// Casts: `value as T` turns any number or `bool` into any number type. An
-// integer cast keeps the low bits; a float cast to an integer drops the
-// fraction and saturates at the type's ends, and NaN gives 0.
-// Run: peeper run examples/03_casts.peep
+```peeper
 fn main() {
     let big: i32 = 300;
     let negative: i32 = -1;

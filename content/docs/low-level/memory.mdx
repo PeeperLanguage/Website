@@ -1,0 +1,87 @@
+---
+title: Memory
+description: Allocators from the core library, and taking room for values from them.
+---
+
+## Allocators
+
+ The core module `memory` gives memory and takes it back. Its interface
+ `Allocator` has three methods:
+
+ - `Allocate(size, align)` gives a piece of `size` bytes whose address is a
+   multiple of `align`, or `none` when there is no room.
+ - `Realloc(memory, old_size, new_size, align)` grows or shrinks a piece,
+   moving it when it must.
+ - `Free(memory)` gives a piece back.
+
+ `align` is a power of two up to 16. Code that needs memory takes a
+ `&mut memory::Allocator`, so its caller picks where the memory comes from.
+
+ | Allocator | Gives | Takes back |
+ | --- | --- | --- |
+ | `Heap.{}` | pieces from the program's heap | each piece, with `Free` |
+ | `Arena::New(size)` | pieces of one block, one after another | all at once, with `Reset`; `Release` frees the block |
+ | `Pool::New(chunk, align, count)` | `count` chunks of one size | each chunk, with `Free` |
+ | `Stack::New(size)` | pieces of one block | the newest piece first, with `Free` |
+
+## A value from an allocator
+
+ `memory::New(T, allocator)` takes room for one `T` and gives a `*T` to it,
+ or `none` when there is no room. The value is not set yet: write it through
+ the pointer before reading it.
+
+<Terminal run="auto">
+
+```peeper
+import "core:memory";
+
+struct Point { x: i32, y: i32 }
+
+// Works with any allocator.
+fn make(allocator: &mut memory::Allocator, x: i32) -> *Point {
+    let point = memory::New(Point, allocator);
+    if point == none {
+        panic "no room";
+    }
+    point.x = x;
+    point.y = x * 2;
+    return point;
+}
+
+fn main() {
+    let mut heap = memory::Heap.{};
+    let first = make(&mut heap, 1);
+    println("from the heap:", first.x, first.y);
+    heap.Free(first);
+
+    let mut arena = memory::Arena::New(64);
+    let a = make(&mut arena, 2);
+    let b = make(&mut arena, 3);
+    println("from the arena:", a.y, b.y);
+    arena.Release();                // gives back both at once
+}
+```
+
+</Terminal>
+
+## Replacing a value
+
+ A value cannot be moved out from behind a reference. `memory::Replace(T,
+ place, value)` puts `value` in `place` and gives back the value that was
+ there.
+
+<Terminal run="auto">
+
+```peeper
+import "core:memory";
+
+struct Point { x: i32, y: i32 }
+
+fn main() {
+    let mut point = Point.{ x = 1, y = 2 };
+    let old = memory::Replace(Point, &mut point, Point.{ x = 0, y = 0 });
+    println("old:", old, "now:", point);
+}
+```
+
+</Terminal>

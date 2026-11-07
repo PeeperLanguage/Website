@@ -1,0 +1,83 @@
+---
+title: Arrays
+description: Fixed arrays that copy, checked indexes, loops and spreads.
+---
+
+## Arrays
+
+ `[N]T` holds `N` values of type `T`, and `.len` is `N`. `[_]T` counts the
+ values for you. An array copies when it is assigned or passed.
+
+```peeper
+let a = [3]i32{1, 2, 3};
+let b = [_]i64{4, 5};           // `_` counts the values
+```
+
+An index is checked against the length. If the compiler can see the index is
+ too large, it is an error:
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let values = [3]i32{1, 2, 3};
+    println(values[3]);
+}
+```
+
+</Terminal>
+
+Otherwise the program checks it when it runs, and stops with a
+ [panic](/docs/basics/panics) if it fails. Any integer type can be an index.
+ `values...` in an array literal gives each of another array's values, or of
+ a range's. `for` goes over an array's values, copying each one.
+
+<Terminal run="auto">
+
+```peeper
+fn sum(values: [3]i32) -> i32 {     // gets a copy
+    return values[0] + values[1] + values[2];
+}
+
+fn tens() -> [3]i32 {
+    let mut values = [3]i32{0, 0, 0};
+    for i in 0..values.len {
+        values[i] = i as i32 * 10;
+    }
+    return values;
+}
+
+fn main() {
+    let a = [3]i32{1, 2, 3};
+    let b = [_]i64{4, 5};           // `_` counts the values
+    println("arrays:", a, b, a.len);
+
+    let mut c = a;                  // a copy: `a` stays as it is
+    c[0] = 9;
+    let at: u8 = 2;                 // any integer type indexes
+    println("copy:", a[0], c[0], c[at]);
+
+    let mut grid = [2][3]i32{[3]i32{1, 2, 3}, [3]i32{4, 5, 6}};
+    grid[1][0] = 40;
+    println("nested:", grid, grid[1].len);
+
+    println("passed:", sum(a), "returned:", tens());
+
+    let mut total = 0;
+    for value in a {                // each value, copied
+        total = total + value;
+    }
+    println("loops:", total);
+    print("numbered:");
+    for i, value in a {
+        print("", i, value);
+    }
+    println();
+
+    println("spread:", [_]i32{a..., 0, a...}, [5]i32{(0..4)..., 100});
+    let empty = [0]i32{};
+    println("empty:", empty.len);
+}
+```
+
+</Terminal>

@@ -14,8 +14,8 @@ let start = Point.{ y = 2, x = 1 };
 let end: Point = .{ x = 4, y = 6 };
 ```
 
- A struct's own functions and methods are declared `fn Point::name(...)`. See
- [Methods](/docs/language/methods).
+ A struct's own functions and methods are declared `fn Point::name(...)`. The
+ [Methods](/docs/methods/methods) page shows them.
 
 ## Moves
 
@@ -39,12 +39,7 @@ fn main() {
 
 <Terminal run="auto">
 
-```peeper title="examples/09_structs.peep"
-// Structs: `struct` names a group of fields. `Name.{ field = value }` makes
-// one, with the fields in any order, and `.{ ... }` takes the type from
-// where it goes. A struct moves when assigned or passed: the old variable
-// is then unset, until a `mut` one is set again.
-// Run: peeper run examples/09_structs.peep
+```peeper
 struct Point { x: i32, y: i32 }
 struct Line { start: Point, end: Point, weight: f32 }
 struct Empty {}
@@ -80,26 +75,22 @@ fn main() {
 
 <Terminal run="auto">
 
-```peeper title="examples/10_type_aliases.peep"
-// Type aliases: `type Name = T` gives `T` another name. A value of the alias
-// and of `T` mix freely; an alias may name one declared after it.
-// Run: peeper run examples/10_type_aliases.peep
+```peeper
 type Distance = Meters;
 type Meters = i32;
 type Origin = Point;
 struct Point { x: Meters, y: Meters }
-
-const Limit: Meters = 40;
 
 fn double(length: Meters) -> Distance {
     return length * 2;
 }
 
 fn main() {
+    let limit: Meters = 40;
     let half: Meters = 21;
     let whole: i32 = double(half);  // a `Distance` is an `i32`
     let home: Origin = Point.{ x = 0, y = whole };
-    println("whole:", whole, "over limit:", whole > Limit, "home:", home);
+    println("whole:", whole, "over limit:", whole > limit, "home:", home);
 }
 ```
 

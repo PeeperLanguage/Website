@@ -1,0 +1,121 @@
+---
+title: Interfaces
+description: The methods a type must have, and references that call them.
+---
+
+## Declaring an interface
+
+ `iface Shape { ... }` lists methods by their signatures, separated by commas.
+ Each takes `self`, `&self` or `&mut self` first. A struct has the interface
+ when it has each of these methods, with the same parameters and result;
+ nothing else is written to give it one.
+
+ An interface is used through a reference. Where a `&Shape` is expected,
+ `&square` becomes one, and `shape.Area()` calls the `Area` of the struct it
+ was made from. One function then works for every struct that has the
+ methods.
+
+<Terminal run="auto">
+
+```peeper
+iface Shape {
+    fn Area(&self) -> f64,
+    fn Name(&self) -> &str
+}
+
+struct Square { side: f64 }
+fn Square::Area(&self) -> f64 { return self.side * self.side; }
+fn Square::Name(&self) -> &str { return "square"; }
+
+struct Circle { radius: f64 }
+fn Circle::Area(&self) -> f64 { return 3.0 * self.radius * self.radius; }
+fn Circle::Name(&self) -> &str { return "circle"; }
+
+fn show(shape: &Shape) {
+    println(shape.Name(), shape.Area());
+}
+
+fn main() {
+    let square = Square.{ side = 2.0 };
+    let circle = Circle.{ radius = 1.0 };
+    show(&square);
+    show(&circle);
+}
+```
+
+</Terminal>
+
+ An interface is a name like others: one starting with an upper case letter
+ is exported, and another module writes it as `shapes::Shape`.
+
+## Changing through an interface
+
+ `&Shape` calls the methods that take `&self`. `&mut Shape` calls those that
+ take `&mut self` too, and is made from `&mut square`, so `square` must be
+ `mut`. Each call lends it again, so it stays usable after the call, and it
+ also goes where a `&Shape` is expected.
+
+<Terminal run="auto">
+
+```peeper
+iface Shape {
+    fn Area(&self) -> f64,
+    fn Grow(&mut self, by: f64)
+}
+
+struct Square { side: f64 }
+fn Square::Area(&self) -> f64 { return self.side * self.side; }
+fn Square::Grow(&mut self, by: f64) { self.side = self.side + by; }
+
+fn twice(shape: &mut Shape) {
+    shape.Grow(1.0);
+    shape.Grow(1.0);
+    println("area:", shape.Area());
+}
+
+fn main() {
+    let mut square = Square.{ side = 2.0 };
+    twice(&mut square);
+    println("side:", square.side);
+}
+```
+
+</Terminal>
+
+ A method that takes `self` whole moves the value, so it cannot be called
+ through a reference to an interface.
+
+## A struct that does not match
+
+ A struct without one of the methods, or with one whose parameters or result
+ differ, does not have the interface. Where it would become one, the error
+ names the method:
+
+<Terminal run="auto">
+
+```peeper
+iface Shape {
+    fn Area(&self) -> f64,
+    fn Name(&self) -> &str
+}
+
+struct Line { length: f64 }
+fn Line::Area(&self) -> f64 { return 0.0; }
+
+fn show(shape: &Shape) {
+    println(shape.Name(), shape.Area());
+}
+
+fn main() {
+    show(&Line.{ length = 3.0 });
+}
+```
+
+</Terminal>
+
+## Not supported yet
+
+ - An interface value that owns its struct: `Shape` alone, as a parameter or
+   variable type.
+ - A pointer to an interface, an array of interface references, or a
+   reference to one.

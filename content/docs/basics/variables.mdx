@@ -1,0 +1,54 @@
+---
+title: Variables
+description: let, mut, and names that live in a block.
+---
+
+## let and mut
+
+ `let` names a value, and `mut` lets it change. Without a type, a variable
+ takes the type of its value. With one, the type is written after a `:`.
+
+```peeper
+let fixed = 5;                  // `i32`, from the value
+let mut total: i64 = 0;         // the type is written
+```
+
+ Changing a variable declared without `mut` is an error:
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let count = 1;
+    count = 2;
+    println(count);
+}
+```
+
+</Terminal>
+
+## Blocks
+
+ `{ ... }` makes a block. A name declared in a block lives until the block
+ ends, and it hides an outer name that is spelled the same.
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let fixed = 5;
+    let mut total: i64 = 0;
+    total = total + fixed;
+    total = total * 2;
+    {
+        let fixed = 100;            // hides the outer `fixed` in this block
+        total = total + fixed;
+    }
+    println("total:", total, "fixed:", fixed);
+}
+```
+
+</Terminal>
+
+ A `let` can also leave its value for later. The
+ [Conditions](/docs/basics/conditions) page shows how.

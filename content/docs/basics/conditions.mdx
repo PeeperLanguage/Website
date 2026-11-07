@@ -1,0 +1,109 @@
+---
+title: Conditions
+description: if and else, bool operators, and values set on each path.
+---
+
+## if and else
+
+ `if`, `else if` and `else` take a `bool`. Comparisons such as `<`, `==` and
+ `!=` give one. `&&` and `||` skip their right side when the left side already
+ decides the answer, and `!` negates.
+
+<Terminal run="auto">
+
+```peeper
+fn describe(n: i32) {
+    if n < 0 {
+        println(n, "is negative");
+    } else if n == 0 {
+        println(n, "is zero");
+    } else {
+        println(n, "is positive");
+    }
+}
+
+fn noisy(value: bool) -> bool {
+    println("  noisy runs");
+    return value;
+}
+
+fn main() {
+    describe(-3);
+    describe(0);
+    describe(8);
+    println("and:", false && noisy(true));  // `noisy` does not run
+    println("or:", true || noisy(false));   // nor here
+    println("both:", true && noisy(true));  // here it does
+    println("not:", !(1 > 2));
+}
+```
+
+</Terminal>
+
+## A function that calls itself
+
+ A function can call itself. A condition decides when it stops:
+
+<Terminal run="auto">
+
+```peeper
+fn gcd(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        return a;
+    }
+    return gcd(b, a % b);
+}
+
+fn main() {
+    println("gcd:", gcd(48, 18));
+}
+```
+
+</Terminal>
+
+## A value set on each path
+
+ A `let` without a value is set by its first assignment. It must be set once
+ on every path before it is read:
+
+<Terminal run="auto">
+
+```peeper
+fn sign(value: i32) -> i32 {
+    let result: i32;                // set below, once on each path
+    if value > 0 {
+        result = 1;
+    } else if value < 0 {
+        result = -1;
+    } else {
+        result = 0;
+    }
+    return result;
+}
+
+fn main() {
+    println("signs:", sign(-8), sign(0), sign(3));
+}
+```
+
+</Terminal>
+
+ If one path can skip the assignment, the compiler shows that path:
+
+<Terminal run="auto">
+
+```peeper
+fn pick(flag: bool) -> i32 {
+    let value: i32;
+    if flag {
+        value = 1;
+    }
+    return value;
+}
+
+fn main() {
+    println(pick(true));
+}
+```
+
+</Terminal>

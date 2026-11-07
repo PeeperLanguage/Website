@@ -1,17 +1,18 @@
 ---
 title: Loops and ranges
-description: for over ranges, arrays and slices, as a while, and forever; range values.
+description: for over a range, as a while, and forever; range values.
 ---
 
 ## One loop keyword
 
  `for` is the only loop. It can:
 
- - go over a range, an array or a slice;
+ - go over a range of numbers;
  - run while a condition holds;
  - run until `break`.
 
- `continue` goes on to the next pass.
+ `continue` goes on to the next pass. Later pages show `for` over arrays and
+ slices too.
 
 ```peeper
 for i, v in 10..13 {            // the pass number, from 0, and the value
@@ -21,11 +22,7 @@ for {                           // until `break`
 
 <Terminal run="auto">
 
-```peeper title="examples/06_loops.peep"
-// Loops: `for` is the only loop. It goes over a range, an array or a slice,
-// runs while a condition holds, or runs until `break`. `continue` goes on
-// to the next pass.
-// Run: peeper run examples/06_loops.peep
+```peeper
 fn main() {
     print("range:");
     for i in 0..5 {
@@ -86,8 +83,8 @@ fn main() {
  end of its type.
 
  A range is a value of type `range[T]`. You can keep it in a variable, pass
- it, return it and copy it, like a number. `values...` in an array literal
- gives each of a range's values.
+ it, return it and copy it, like a number. A step of 0 stops the program
+ while it runs; the [Panics](/docs/basics/panics) page shows how.
 
 ```peeper
 fn evens(below: i32) -> range[i32] {
@@ -97,14 +94,7 @@ fn evens(below: i32) -> range[i32] {
 
 <Terminal run="auto">
 
-```peeper title="examples/07_ranges.peep"
-// Ranges: `a..b` counts from `a` up to `b`, `a..=b` takes `b` too, and
-// `:step` steps by more than 1. A range counts down when `a > b`, and never
-// wraps past its type's end. A range is a value of type `range[T]`: it is
-// kept, passed, returned and copied like a number.
-// Run: peeper run examples/07_ranges.peep
-struct Window { values: range[u8], tag: i32 }
-
+```peeper
 fn evens(below: i32) -> range[i32] {
     return 0..below:2;
 }
@@ -137,13 +127,6 @@ fn main() {
     let r = 1..=4;
     let copy = r;
     println("totals:", total(r), total(copy), total(evens(9)));
-
-    let window = Window.{ values = 10..=20:5, tag = 1 };
-    print("field:");
-    for v in window.values { print("", v); }
-    println(" tag", window.tag);
-
-    println("spread:", [5]i32{(0..4)..., 100});   // a range's values in an array
 }
 ```
 

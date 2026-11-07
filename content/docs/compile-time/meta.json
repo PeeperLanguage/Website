@@ -1,0 +1,5 @@
+{
+  "title": "Compile time",
+  "icon": "Timer",
+  "pages": ["constants", "const-parameters"]
+}

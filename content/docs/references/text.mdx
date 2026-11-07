@@ -1,0 +1,65 @@
+---
+title: Text
+description: Text in double quotes, the &str view, and its length.
+---
+
+## &str
+
+ Text in double quotes is a `&str`: a view of the text's bytes, read only,
+ with their count. `.len` is that count in bytes, so a letter such as `é` that
+ takes two bytes counts as two.
+
+ A `&str` is a value like a number: it goes in variables, parameters,
+ results, struct fields, arrays and constants, and `println` writes it.
+
+<Terminal run="auto">
+
+```peeper
+struct Pet { name: &str, legs: i32 }
+
+fn greet(name: &str) {
+    println("hello", name);
+}
+
+fn pick(first: bool) -> &str {
+    if first {
+        return "one";
+    }
+    return "two";
+}
+
+fn main() {
+    greet("Ada");
+    let pet = Pet.{ name = "Rex", legs = 4 };
+    println("field:", pet.name, pet.legs);
+    println(pet);
+
+    let mut word = "a";
+    word = "bcd";                   // the view changes, not the text
+    println("lengths:", word.len, "héllo".len, "".len);
+    println("returned:", pick(true), pick(false));
+
+    let names = [3]&str{"x", "yz", ""};
+    println("array:", names, names[1].len);
+}
+```
+
+</Terminal>
+
+## Not supported yet
+
+ - Comparing text with `==`, indexing it, or joining it with `+`.
+ - Text the program owns and can grow: there is no `string` type yet.
+ - Passing a `&str` to a C function. C functions take `&cstr`, shown on the
+   [C functions](/docs/low-level/c-functions) page.
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let s = "ab";
+    println(s == "ab");
+}
+```
+
+</Terminal>
