@@ -1,11 +1,11 @@
 import { SHIKI_THEMES } from '@/lib/highlight/code-theme';
 import type { Token } from '@/lib/highlight/highlight';
 
-const types = 'i32|i64|i1|u32|bool|ptr|void';
+const types = 'i8|i32|i64|i1|ptr|void';
 const registers = '[er](?:ax|cx|dx|di|si|sp|ip)';
-const controlFlow = 'call|ret|return|br|branch|goto|jle';
+const controlFlow = 'call|ret|return|br|branch|jump|jge';
 const keywords =
-  'fn|if|define|entry|alloca|label|load|store|icmp|sgt|sext|to|unreachable|scope|end|mov|cmp|push|pop|cdqe|lea';
+  'fn|if|let|define|entry|alloca|align|label|load|store|icmp|slt|sext|to|getelementptr|inbounds|dead|address|global|mov|cmp|sub|add|cdqe|lea';
 const address = '^[\\da-f]{4} {2}';
 const instructionBytes = `${address}(?:[\\da-f]{2}(?: +|$))*`;
 
