@@ -95,3 +95,30 @@ fn main() {
 ```
 
 </Terminal>
+
+## Slices of references
+
+ An array of references lends a slice of them, `&[]&T`. A loop over it gives
+ a reference to each reference, so `value.*.*` is the number.
+
+<Terminal run="auto">
+
+```peeper
+fn total(values: &[]&i32) -> i32 {
+    let mut sum = 0;
+    for value in values {               // `value` is a `&&i32`
+        sum = sum + value.*.*;
+    }
+    return sum;
+}
+
+fn main() {
+    let a = 1;
+    let b = 2;
+    let c = 3;
+    let refs = [3]&i32{ &a, &b, &c };
+    println("total:", total(&refs), "first two:", total(&refs[..2]));
+}
+```
+
+</Terminal>

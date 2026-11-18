@@ -1,6 +1,6 @@
 ---
 title: Compile-time parameters
-description: const parameters that take a type or a value, and size_of and align_of.
+description: const parameters that take a type or a value, and what the compiler answers about a type.
 ---
 
 ## A type as a parameter
@@ -87,7 +87,7 @@ fn main() {
 
 </Terminal>
 
-## size_of and align_of
+## Asking about a type
 
  `size_of(T)` is how many bytes a `T` takes, and `align_of(T)` is the number
  its address must be a multiple of. Both give a `usize` constant for the
@@ -114,8 +114,38 @@ fn main() {
 
 </Terminal>
 
+ More functions answer what kind of type `T` is, each a `bool` constant:
+ `is_int`, `is_float`, `is_text` (`&str`), `is_bool` and `is_pointer` (`*T`
+ or `rawptr`). For an integer or a float type, `bits_of(T)` is its width in
+ bits, and for an integer type `is_signed(T)` says whether it has negative
+ values. In a copy, an `if` on one of them keeps only the branch for its type.
+
+<Terminal run="auto">
+
+```peeper
+struct Node { value: i32, weight: f64 }
+
+fn Describe(const T: type) {
+    if is_int(T) {
+        println("integer,", bits_of(T), "bits, signed:", is_signed(T));
+    } else if is_float(T) {
+        println("float,", bits_of(T), "bits");
+    } else {
+        println("other,", size_of(T), "bytes, align", align_of(T));
+    }
+}
+
+fn main() {
+    Describe(u16);
+    Describe(f32);
+    Describe(Node);
+    println(is_text(&str), is_bool(bool), is_pointer(*i32));
+}
+```
+
+</Terminal>
+
 ## Not supported yet
 
- - Leaving out the type at the call: `At(i64, ...)` always names `i64`.
  - A `const` value whose type is a type parameter: `const value: T`.
  - A `const` parameter on a C function, or on a method an interface lists.

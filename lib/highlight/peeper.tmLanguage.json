@@ -13,6 +13,7 @@
     { "include": "#type_alias" },
     { "include": "#type_declaration" },
     { "include": "#function_declaration" },
+    { "include": "#where_clause" },
     { "include": "#type_annotation" },
     { "include": "#array_literal_type" },
     { "include": "#keywords" },
@@ -91,7 +92,7 @@
     "keywords": {
       "patterns": [
         {
-          "match": "\\b(import|type|fn|struct|enum|union|error|if|else|match|for|break|continue|return|catch|orelse|as|defer|panic|unsafe|const|let|mut|in|is|with|comptime|move|iface|from)\\b",
+          "match": "\\b(import|type|fn|struct|enum|union|error|if|else|match|for|break|continue|return|catch|orelse|as|defer|panic|unsafe|const|let|mut|in|is|with|comptime|move|iface|from|where)\\b",
           "name": "keyword.control.peeper"
         },
         {
@@ -118,6 +119,36 @@
         "5": { "patterns": [{ "include": "#type_path" }] },
         "6": { "patterns": [{ "include": "#type_name" }] }
       }
+    },
+    "where_clause": {
+      "comment": "where T: Shape, T: Sized(8): an interface is a type; with arguments, a function.",
+      "begin": "\\b(where)\\b",
+      "beginCaptures": { "1": { "name": "keyword.control.peeper" } },
+      "end": "(?=[{;])",
+      "patterns": [
+        {
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(:)(?!:)\\s*((?:[A-Za-z_][A-Za-z0-9_]*\\s*::\\s*)*)([A-Za-z_][A-Za-z0-9_]*)(?=\\s*\\()",
+          "captures": {
+            "1": { "name": "entity.name.type.peeper" },
+            "2": { "name": "punctuation.delimiter.peeper" },
+            "3": { "patterns": [{ "include": "#type_path" }] },
+            "4": { "name": "entity.name.function.call.peeper" }
+          }
+        },
+        {
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(:)(?!:)\\s*((?:[A-Za-z_][A-Za-z0-9_]*\\s*::\\s*)*)([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "entity.name.type.peeper" },
+            "2": { "name": "punctuation.delimiter.peeper" },
+            "3": { "patterns": [{ "include": "#type_path" }] },
+            "4": { "patterns": [{ "include": "#type_name" }] }
+          }
+        },
+        { "include": "#number" },
+        { "include": "#string" },
+        { "include": "#operators" },
+        { "include": "#punctuation" }
+      ]
     },
     "type_annotation": {
       "match": "(?:(?<![\\w.+\\-*/%&|^<>=!])(?<![.+\\-*/%&|^<>=!]\\s)(?<!\\bas\\s)([A-Za-z_][A-Za-z0-9_]*)\\s*(:)(?!:)|(->))\\s*((?:&\\s*(?:mut\\b\\s*)?|\\*\\s*|\\[[^\\]\\n]*\\]\\s*)*)((?:[A-Za-z_][A-Za-z0-9_]*\\s*::\\s*)*)([A-Za-z_][A-Za-z0-9_]*)",
@@ -163,14 +194,23 @@
       }
     },
     "function_declaration": {
-      "match": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+      "match": "\\b(fn)\\s+(?:([A-Za-z_][A-Za-z0-9_]*)\\s*(::)\\s*)?([A-Za-z_][A-Za-z0-9_]*)\\b(?:\\s*(<[^<>\\n]*>))?",
       "captures": {
         "1": { "name": "keyword.control.peeper" },
-        "2": { "name": "entity.name.function.peeper" }
+        "2": { "name": "entity.name.type.peeper" },
+        "3": { "name": "keyword.operator.peeper" },
+        "4": { "name": "entity.name.function.peeper" },
+        "5": {
+          "patterns": [
+            { "match": "[A-Za-z_][A-Za-z0-9_]*", "name": "entity.name.type.peeper" },
+            { "include": "#operators" },
+            { "include": "#punctuation" }
+          ]
+        }
       }
     },
     "struct_literal_type": {
-      "match": "(?<![\\w.])\\b([A-Za-z_][A-Za-z0-9_]*(?:\\s*(?<generic><(?:[^<>\\n]|\\g<generic>)*>))?(?:\\s*::\\s*[A-Za-z_][A-Za-z0-9_]*(?:\\s*\\g<generic>)?)*)(?=\\s*\\.\\s*\\{)",
+      "match": "(?<![\\w.])\\b([A-Za-z_][A-Za-z0-9_]*(?:\\s*::\\s*(?<generic><(?:[^<>\\n]|\\g<generic>)*>))?(?:\\s*::\\s*[A-Za-z_][A-Za-z0-9_]*(?:\\s*::\\s*\\g<generic>)?)*)(?=\\s*\\.\\s*\\{)",
       "captures": {
         "1": {
           "patterns": [
@@ -183,8 +223,20 @@
       }
     },
     "function_call": {
-      "match": "\\b([a-z_][A-Za-z0-9_]*)\\s*(?=\\()",
-      "name": "entity.name.function.call.peeper"
+      "comment": "f(x) or f::<T>(x): in an expression, type arguments follow `::`; a `<` after a name compares.",
+      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(::\\s*(?<arguments><(?:[^<>\\n]|\\g<arguments>)*>))?\\s*(?=\\()",
+      "captures": {
+        "1": { "name": "entity.name.function.call.peeper" },
+        "2": {
+          "patterns": [
+            { "include": "#builtin_types" },
+            { "include": "#type_name" },
+            { "include": "#number" },
+            { "include": "#operators" },
+            { "include": "#punctuation" }
+          ]
+        }
+      }
     },
     "scoped_identifier": {
       "match": "\\b([A-Z][A-Za-z0-9_]*)::",

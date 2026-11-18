@@ -1,4 +1,14 @@
 {
   "title": "Peeper",
-  "pages": ["(start)", "basics", "data", "references", "projects", "methods", "compile-time", "low-level", "tools"]
+  "pages": [
+    "(start)",
+    "basics",
+    "data",
+    "references",
+    "projects",
+    "methods",
+    "compile-time",
+    "low-level",
+    "tools"
+  ]
 }

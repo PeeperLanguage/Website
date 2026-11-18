@@ -85,6 +85,42 @@ fn main() {
  A method that takes `self` whole moves the value, so it cannot be called
  through a reference to an interface.
 
+## A list of shapes
+
+ An array or a slice can hold interface references, so one function takes
+ any number of shapes of different structs.
+
+<Terminal run="auto">
+
+```peeper
+iface Shape {
+    fn Area(&self) -> f64
+}
+
+struct Square { side: f64 }
+fn Square::Area(&self) -> f64 { return self.side * self.side; }
+
+struct Circle { radius: f64 }
+fn Circle::Area(&self) -> f64 { return 3.0 * self.radius * self.radius; }
+
+fn total(shapes: &[]&Shape) -> f64 {
+    let mut sum = 0.0;
+    for shape in shapes {
+        sum = sum + shape.*.Area();
+    }
+    return sum;
+}
+
+fn main() {
+    let square = Square.{ side = 2.0 };
+    let circle = Circle.{ radius = 1.0 };
+    let shapes = [2]&Shape{ &square, &circle };
+    println("total:", total(&shapes), "first:", shapes[0].Area());
+}
+```
+
+</Terminal>
+
 ## A struct that does not match
 
  A struct without one of the methods, or with one whose parameters or result
@@ -117,5 +153,5 @@ fn main() {
 
  - An interface value that owns its struct: `Shape` alone, as a parameter or
    variable type.
- - A pointer to an interface, an array of interface references, or a
-   reference to one.
+ - A pointer to an interface or to an interface reference.
+ - Printing an interface reference, or an array of them.

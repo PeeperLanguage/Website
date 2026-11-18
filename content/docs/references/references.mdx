@@ -108,3 +108,52 @@ fn main() {
 ```
 
 </Terminal>
+
+## References in structs and arrays
+
+ A struct field or an array element can hold a reference. Each one keeps its
+ own borrow, so `a` may change while only the fields and elements that do not
+ point at it are used later. Setting a field, or an element at a fixed index,
+ replaces what it pointed at.
+
+<Terminal run="auto">
+
+```peeper
+struct Pair { first: &i32, second: &i32 }
+
+fn main() {
+    let mut a = 1;
+    let b = 2;
+    let c = 3;
+    let pair = Pair.{ first = &a, second = &b };
+    let refs = [2]&i32{ &a, &b };
+    a = 5;                              // only `pair.first` and `refs[0]` point at `a`
+    println("second:", pair.second.*, "refs[1]:", refs[1].*);
+
+    let mut more = [2]&i32{ &a, &b };
+    more[0] = &c;                       // element 0 points at `c` now
+    a = 6;
+    println("more:", more[0].*, more[1].*, "a:", a);
+}
+```
+
+</Terminal>
+
+ An index held in a variable may name any element, so a read or a store
+ with it counts every element. `at` is 1 here, but `refs[at]` could be
+ `refs[0]`, which points at `a`:
+
+<Terminal run="auto">
+
+```peeper
+fn main() {
+    let mut a = 1;
+    let b = 2;
+    let refs = [2]&i32{ &a, &b };
+    let at: usize = 1;
+    a = 5;
+    println(refs[at].*);
+}
+```
+
+</Terminal>

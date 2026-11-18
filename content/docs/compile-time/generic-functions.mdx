@@ -1,0 +1,201 @@
+---
+title: Generic functions
+description: Type parameters, types written at a call, and where constraints.
+---
+
+## Type parameters
+
+ `fn Max<T>` takes a type parameter, `T`, and its parameters and result use
+ `T` as a type. A call does not write the type: it comes from the first
+ argument whose parameter names `T`, and the arguments after it convert to
+ that type. Each type a function is called with makes its own copy of the
+ function, checked for that type.
+
+<Terminal run="auto">
+
+```peeper
+fn Max<T>(a: T, b: T) -> T {
+    if a > b {
+        return a;
+    }
+    return b;
+}
+
+fn main() {
+    let small: u8 = 3;
+    println(Max(3, 7), Max(1.5, 0.5), Max(small, 1));
+}
+```
+
+</Terminal>
+
+ `T` can be part of a parameter's type. A `&[]T` given a slice of `&str`
+ makes `T` the `&str`, and a `&mut T` given a `&mut i32` makes it `i32`.
+
+<Terminal run="auto">
+
+```peeper
+// `T` is the type each element has.
+fn First<T>(list: &[]T) -> T {
+    return list[0];
+}
+
+fn Swap<T>(a: &mut T, b: &mut T) {
+    let kept = a.*;
+    a.* = b.*;
+    b.* = kept;
+}
+
+fn main() {
+    let words = [2]&str{"hello", "world"};
+    let mut x = 1;
+    let mut y = 2;
+    Swap(&mut x, &mut y);
+    println(First(&words), x, y);
+}
+```
+
+</Terminal>
+
+## Types written at the call
+
+ `Max::<f64>(1, 2.5)` names the types after `::`, one for each type
+ parameter, in order. Every argument then converts to them. A function whose
+ parameters do not name `T` needs this form. Without `::`, `<` and `>`
+ compare, as anywhere else in an expression.
+
+<Terminal run="auto">
+
+```peeper
+fn Max<T>(a: T, b: T) -> T {
+    if a > b {
+        return a;
+    }
+    return b;
+}
+
+fn Zero<T>() -> T {
+    return 0;
+}
+
+fn main() {
+    let count = 4;
+    println(Max::<f64>(1, 2.5), Zero::<u8>(), count < 10);
+}
+```
+
+</Terminal>
+
+ When no argument says what `T` is and the call does not write it, the
+ compiler asks for it:
+
+<Terminal run="auto">
+
+```peeper
+fn Zero<T>() -> T {
+    return 0;
+}
+
+fn main() {
+    println(Zero());
+}
+```
+
+</Terminal>
+
+## Constraints with where
+
+ `where` lists what the types and `const` values of a function must satisfy,
+ one constraint per line. `T: Shape` asks that `T` implements the interface
+ `Shape`. `T: Number` calls the function `Number` with `T`, while compiling,
+ and asks that it gives `true`. A function given more values takes them in
+ parentheses after its name: `T: Sized(8)` calls `Sized(T, 8)`.
+
+<Terminal run="auto">
+
+```peeper
+iface Shape {
+    fn Area(&self) -> f64
+}
+
+struct Square { side: f64 }
+fn Square::Area(&self) -> f64 { return self.side * self.side; }
+
+fn Number(const T: type) -> bool {
+    return is_int(T) || is_float(T);
+}
+
+fn Positive(const N: i64) -> bool {
+    return N > 0;
+}
+
+fn Sum<T>(values: &[]T) -> T
+where
+    T: Number
+{
+    let mut sum: T = 0;
+    for value in values {
+        sum = sum + value.*;
+    }
+    return sum;
+}
+
+fn Double<T>(shape: &T) -> f64
+where
+    T: Shape
+{
+    return shape.Area() * 2.0;
+}
+
+fn Repeat(const N: i64, text: &str)
+where
+    N: Positive
+{
+    for i in 0..N {
+        print(text);
+    }
+    println();
+}
+
+fn main() {
+    let numbers = [3]i32{1, 2, 3};
+    println(Sum(&numbers), Double(&Square.{ side = 3.0 }));
+    Repeat(3, "ab");
+}
+```
+
+</Terminal>
+
+ Each call checks the constraints for its own copy. One that is false is an
+ error at that call, naming the copy:
+
+<Terminal run="auto">
+
+```peeper
+fn Number(const T: type) -> bool {
+    return is_int(T) || is_float(T);
+}
+
+fn Max<T>(a: T, b: T) -> T
+where
+    T: Number
+{
+    if a > b {
+        return a;
+    }
+    return b;
+}
+
+fn main() {
+    println(Max(1, 2), Max(true, false));
+}
+```
+
+</Terminal>
+
+## Not supported yet
+
+ - Calling a function through a type parameter: `T::Area`.
+ - Type arguments on a method call: `point.With::<f64>(2)`.
+ - A generic function as a value: `let f = Max::<i32>;`.
+ - Type parameters on a C function, or on a method an interface lists.
