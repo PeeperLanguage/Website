@@ -87,6 +87,50 @@ fn main() {
 
 </Terminal>
 
+## A value whose type is a parameter
+
+ A `const` value's type can name a type parameter: `const n: T`. The call
+ finds `T` from that argument as from any other, and checks the value as a
+ `T`. With `const T: type`, the type comes first, and the value after it.
+
+<Terminal run="auto">
+
+```peeper
+fn Positive<T>(const n: T) -> bool {
+    return n > 0;
+}
+
+fn Scale(const T: type, const factor: T, x: T) -> T {
+    return factor * x;
+}
+
+fn main() {
+    println(Positive(5), Positive(-2), Positive(2.5), Positive::<u8>(7));
+    println(Scale(i64, 10, 4), Scale(f64, 0.5, 3.0));
+}
+```
+
+</Terminal>
+
+ The value must fit the type its call gives, and its type can name only the
+ type parameters written before it:
+
+<Terminal run="auto">
+
+```peeper
+fn Positive<T>(const n: T) -> bool {
+    return n > 0;
+}
+
+fn Late(const value: T, const T: type) {}
+
+fn main() {
+    println(Positive::<u8>(300));
+}
+```
+
+</Terminal>
+
 ## Asking about a type
 
  `size_of(T)` is how many bytes a `T` takes, and `align_of(T)` is the number
@@ -147,5 +191,4 @@ fn main() {
 
 ## Not supported yet
 
- - A `const` value whose type is a type parameter: `const value: T`.
  - A `const` parameter on a C function, or on a method an interface lists.
