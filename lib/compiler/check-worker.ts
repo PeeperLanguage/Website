@@ -1,5 +1,11 @@
 /// <reference lib="webworker" />
-import { CHECKER_FAILED, type CheckReply, type CheckRequest, type RunReply } from './checker';
+import {
+  CHECKER_FAILED,
+  type CheckReply,
+  type CheckRequest,
+  type PlaceReply,
+  type RunReply,
+} from './checker';
 
 // The compiler's checker, `crates/driver/browser` in the compiler repo, is a
 // program that reads a request from stdin and writes its findings to stdout.
@@ -100,12 +106,12 @@ async function run(input: string): Promise<{ code: number; output: string }> {
 // `RangeError`. That ends this one instance, and `run` starts a new one for
 // each check, so the next check is not touched.
 addEventListener('message', async ({ data }: MessageEvent<CheckRequest>) => {
-  let reply: CheckReply | RunReply;
+  let reply: CheckReply | RunReply | PlaceReply;
   try {
-    const { files, run: runs } = data;
-    const { code, output } = await run(JSON.stringify({ files, run: runs }));
+    const { files, run: runs, place } = data;
+    const { code, output } = await run(JSON.stringify({ files, run: runs, place }));
     if (code !== 0) reply = { id: data.id, failure: 'the checker could not read the code' };
-    else if (runs) reply = { id: data.id, ...JSON.parse(output) };
+    else if (runs || place) reply = { id: data.id, ...JSON.parse(output) };
     else reply = { id: data.id, entries: JSON.parse(output) };
   } catch (stopped) {
     const failure =

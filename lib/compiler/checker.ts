@@ -34,11 +34,25 @@ export interface CheckRequest {
   id: number;
   files: Record<string, string>;
   run?: boolean; // run the program too, if the check lets it start
+  place?: Position & { file: string }; // instead, answer hover and go to definition here
 }
 
 export type CheckReply =
   | { id: number; entries: Entry[]; failure?: undefined }
   | { id: number; failure: string; entries?: undefined };
+
+/**
+ * What hover shows at a `place`, in Markdown, and where the name there is declared: each null when
+ * nothing is there, and a declaration in a bundled library, which the page does not have, too.
+ */
+export type PlaceReply =
+  | {
+      id: number;
+      hover: string | null;
+      definition: Omit<Place, 'message'> | null;
+      failure?: undefined;
+    }
+  | { id: number; failure: string; hover?: undefined; definition?: undefined };
 
 /** What pressing Run gave: `diagnostics` as a terminal shows them, and `run` if it started. */
 export type RunReply =

@@ -1,7 +1,8 @@
 import type { ThemeRegistration } from 'shiki';
 
 /*
- * Zed's built-in One Dark and One Light, the code colors of its `syntax` table, from
+ * Zed's built-in One Dark and One Light, the code colors of its `syntax` table and those of its
+ * editor, from
  * https://github.com/zed-industries/zed/blob/main/assets/themes/one/one.json (MIT, Copyright (c)
  * 2014 GitHub Inc.). Zed colors by tree-sitter capture names, shiki by TextMate scopes, so each
  * capture lists the scopes that `lib/highlight/peeper.tmLanguage.json`, TOML and shell give the
@@ -33,16 +34,52 @@ const CAPTURE_SCOPES = {
 
 type Capture = keyof typeof CAPTURE_SCOPES;
 
+/** Zed's editor colors that Monaco has a place for, by their names in Zed's theme. */
+type EditorColors = {
+  background: string;
+  foreground: string;
+  line_number: string;
+  active_line: string; // `editor.active_line.background`
+  surface: string; // `elevated_surface.background`, as of hover
+  panel: string; // `panel.background`, as of the file tree and the tab bar
+  text: string; // of what is not code
+  text_muted: string; // `text.muted`
+  hover: string; // `element.hover`
+  border: string;
+  error: string;
+  warning: string;
+  info: string;
+  hint: string;
+};
+
 function zedTheme(
   name: string,
   type: 'light' | 'dark',
-  editor: { background: string; foreground: string },
+  editor: EditorColors,
   colors: Record<Capture, string>,
 ): ThemeRegistration {
   return {
     name,
     type,
-    colors: { 'editor.background': editor.background, 'editor.foreground': editor.foreground },
+    colors: {
+      'editor.background': editor.background,
+      'editor.foreground': editor.foreground,
+      'editorLineNumber.foreground': editor.line_number,
+      'editor.lineHighlightBackground': editor.active_line,
+      'editorWidget.background': editor.surface,
+      'editorWidget.border': editor.border,
+      'editorHoverWidget.background': editor.surface,
+      'editorHoverWidget.border': editor.border,
+      'sideBar.background': editor.panel,
+      'editorGroupHeader.tabsBackground': editor.panel,
+      foreground: editor.text,
+      descriptionForeground: editor.text_muted,
+      'list.hoverBackground': editor.hover,
+      'editorError.foreground': editor.error,
+      'editorWarning.foreground': editor.warning,
+      'editorInfo.foreground': editor.info,
+      'editorHint.foreground': editor.hint,
+    },
     tokenColors: [
       { settings: { foreground: editor.foreground, background: editor.background } },
       ...(Object.entries(CAPTURE_SCOPES) as [Capture, readonly string[]][]).map(
@@ -55,7 +92,22 @@ function zedTheme(
 export const zedOneDark = zedTheme(
   'zed-one-dark',
   'dark',
-  { background: '#282c33', foreground: '#acb2be' },
+  {
+    background: '#282c33',
+    foreground: '#acb2be',
+    line_number: '#4e5a5f',
+    active_line: '#2f343ebf',
+    surface: '#2f343e',
+    panel: '#2f343e',
+    text: '#dce0e5',
+    text_muted: '#a9afbc',
+    hover: '#363c46',
+    border: '#464b57',
+    error: '#d07277',
+    warning: '#dec184',
+    info: '#74ade8',
+    hint: '#788ca6',
+  },
   {
     comment: '#5d636f',
     'comment.doc': '#878e98',
@@ -79,7 +131,22 @@ export const zedOneDark = zedTheme(
 export const zedOneLight = zedTheme(
   'zed-one-light',
   'light',
-  { background: '#fafafa', foreground: '#242529' },
+  {
+    background: '#fafafa',
+    foreground: '#242529',
+    line_number: '#b4b4bb',
+    active_line: '#ebebecbf',
+    surface: '#ebebec',
+    panel: '#ebebec',
+    text: '#242529',
+    text_muted: '#58585a',
+    hover: '#dfdfe0',
+    border: '#c9c9ca',
+    error: '#d36151',
+    warning: '#a48819',
+    info: '#5c78e2',
+    hint: '#7274a7',
+  },
   {
     comment: '#a2a3a7',
     'comment.doc': '#7c7e86',

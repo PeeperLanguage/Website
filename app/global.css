@@ -261,3 +261,19 @@ html > body[data-scroll-locked] {
   }
 }
 /* biome-ignore-end lint/complexity/noImportantStyles: see above */
+
+/* The playground's inline diagnostics, after a line's end, in the theme's colors (`--editor-<kind>`). Monaco's
+   own token class on it would win without `.view-line`. */
+.monaco-editor .view-line .inline-diagnostic {
+  font-size: 0.9em;
+  font-style: italic;
+}
+.monaco-editor .view-line .inline-diagnostic-error {
+  color: var(--editor-error);
+}
+.monaco-editor .view-line .inline-diagnostic-warning {
+  color: var(--editor-warning);
+}
+.monaco-editor .view-line :is(.inline-diagnostic-info, .inline-diagnostic-hint) {
+  color: var(--editor-info);
+}

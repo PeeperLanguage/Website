@@ -44,8 +44,9 @@ import {
   STARTING_MANIFEST,
   sharedFiles,
 } from '@/lib/compiler/project';
-import { Editor, type StartingCode } from './editor';
+import { Editor, type StartingCode, useWindowColors } from './editor';
 import { FileTree } from './file-tree';
+import { useViewOptions, ViewOptionsMenu } from './view-options';
 
 const QUIET_MS = 200; // after the last key, so typing never waits on a check
 const LIMIT_MS = 10_000; // a run past this is ended, as a loop may never finish
@@ -223,7 +224,7 @@ function FileTabs({
       className={cn(
         'group inline-flex shrink-0 items-center border-r border-b',
         name === active
-          ? 'border-b-transparent bg-fd-card text-fd-foreground'
+          ? 'border-b-transparent bg-(--editor-background,var(--color-fd-card)) text-fd-foreground'
           : 'hover:bg-fd-accent',
       )}
     >
@@ -259,9 +260,14 @@ const PROBLEM_KINDS: {
   Icon: LucideIcon;
   color: string;
 }[] = [
-  { name: 'error', severities: ['error'], Icon: CircleX, color: 'text-red-500' },
-  { name: 'warning', severities: ['warning'], Icon: TriangleAlert, color: 'text-amber-500' },
-  { name: 'note', severities: ['info', 'hint'], Icon: Info, color: 'text-sky-500' },
+  { name: 'error', severities: ['error'], Icon: CircleX, color: 'text-(--editor-error)' },
+  {
+    name: 'warning',
+    severities: ['warning'],
+    Icon: TriangleAlert,
+    color: 'text-(--editor-warning)',
+  },
+  { name: 'note', severities: ['info', 'hint'], Icon: Info, color: 'text-(--editor-info)' },
 ];
 
 /** What the checker found, as an icon and a count for each kind; short enough for a phone. */
@@ -306,6 +312,8 @@ export function Playground({ starting }: { starting: StartingCode }) {
   const [caret, setCaret] = useState({ line: 1, column: 1 });
   const [reply, setReply] = useState<CheckReply>();
   const [run, setRun] = useState<Run>({ state: 'idle' });
+  const [view, setView] = useViewOptions();
+  const colors = useWindowColors();
   const [split, setSplit] = useState(60); // the code's percent of the width
   const worker = useRef<Worker>(null);
   const latest = useRef(0); // the check whose reply is wanted; older ones are stale
@@ -431,6 +439,7 @@ export function Playground({ starting }: { starting: StartingCode }) {
 
   return (
     <Window
+      style={colors}
       className="flex h-full flex-col"
       title="Playground"
       actions={
@@ -502,6 +511,7 @@ export function Playground({ starting }: { starting: StartingCode }) {
                   <FileTabs tabs={tabs} active={active} onOpen={setActive} onClose={closeTab} />
                   <span className="flex-1 border-b" />
                 </div>
+                <ViewOptionsMenu options={view} onChange={setView} />
               </div>
               <Editor
                 key={linksLoaded}
@@ -509,8 +519,10 @@ export function Playground({ starting }: { starting: StartingCode }) {
                 active={active}
                 starting={starting}
                 entries={entries}
+                view={view}
                 onEdit={(file, text) => setFiles((now) => ({ ...now, [file]: text }))}
                 onCaret={(line, column) => setCaret({ line, column })}
+                onOpen={openFile}
               />
             </div>
           </div>

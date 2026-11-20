@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 /** A desktop window frame with a title and any `actions`, for code and terminal output. */
@@ -7,14 +7,17 @@ export function Window({
   actions,
   children,
   className,
+  style,
 }: {
   title: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }) {
   return (
     <div
+      style={style}
       className={cn(
         'overflow-hidden rounded-xl border bg-fd-card shadow-2xl shadow-black/10 dark:shadow-black/50',
         className,

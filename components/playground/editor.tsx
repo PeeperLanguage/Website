@@ -1,23 +1,90 @@
 'use client';
 import { shikiToMonaco } from '@shikijs/monaco';
 import type * as Monaco from 'monaco-editor';
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import type { HighlighterCore } from 'shiki/core';
 import { CodeTokens } from '@/components/code/code-card';
-import type { Entry } from '@/lib/compiler/checker';
+import type { CheckRequest, Entry, PlaceReply } from '@/lib/compiler/checker';
 import { languageOf } from '@/lib/compiler/project';
 import { SHIKI_THEMES, shownCodeTheme } from '@/lib/highlight/code-theme';
 import { codeTokens, highlighter, type Token } from '@/lib/highlight/highlight';
+import type { ViewOptions } from './view-options';
 
 const LANGUAGE = 'peeper';
 
-// The site's code colors on `--color-fd-card`, as Monaco takes only hex.
-const COLORS = {
-  light: { background: '#edf3f1', lineHighlight: '#0000000a' },
-  dark: { background: '#0e1015', lineHighlight: '#ffffff0a' },
+// A problem's color where a theme gives none: its Tailwind 500 color mixed 60% with the text color,
+// softer than the pure one Monaco would draw.
+const SOFT_PROBLEM_COLORS = {
+  light: { error: '#953030', warning: '#956218', info: '#006895' },
+  dark: { error: '#fe8b84', warning: '#f9be78', info: '#76c4f5' },
 };
 
+/** The `SHIKI_THEMES` theme `key`, and the color it gives a problem of each kind. */
+function themeOf(shiki: HighlighterCore, key: string) {
+  const input = SHIKI_THEMES[key];
+  const theme = shiki.getTheme(typeof input === 'string' ? input : (input.name ?? key));
+  const soft = SOFT_PROBLEM_COLORS[key.endsWith('-dark') ? 'dark' : 'light'];
+  const own = theme.colors ?? {};
+  const problems = {
+    error: own['editorError.foreground'] ?? soft.error,
+    warning: own['editorWarning.foreground'] ?? soft.warning,
+    info: own['editorInfo.foreground'] ?? soft.info,
+  };
+  return { theme, problems };
+}
+
+/**
+ * The colors of the theme `key` for the whole playground window: the site's own color names,
+ * which all of it is drawn in, and `--editor-<name>` for the editor's background and each kind of
+ * problem. A color a theme lacks is mixed from its text and its panels.
+ */
+function windowColors(shiki: HighlighterCore, key: string) {
+  const { theme, problems } = themeOf(shiki, key);
+  const own = theme.colors ?? {};
+  const panel = own['sideBar.background'] ?? theme.bg;
+  const text = own.foreground ?? theme.fg;
+  const mixed = (percent: number) => `color-mix(in oklab, ${text} ${percent}%, ${panel})`;
+  return {
+    '--color-fd-background': theme.bg,
+    '--color-fd-foreground': text,
+    '--color-fd-card': panel,
+    '--color-fd-popover': panel,
+    '--color-fd-popover-foreground': text,
+    '--color-fd-muted': own['editorGroupHeader.tabsBackground'] ?? panel,
+    '--color-fd-muted-foreground': own.descriptionForeground ?? mixed(65),
+    '--color-fd-border': mixed(15),
+    '--color-fd-accent': own['list.hoverBackground'] ?? mixed(8),
+    '--color-fd-accent-foreground': text,
+    '--editor-background': theme.bg,
+    '--editor-error': problems.error,
+    '--editor-warning': problems.warning,
+    '--editor-info': problems.info,
+  } as CSSProperties;
+}
+
+/** The shown code theme's colors for the playground window (`windowColors`), as it changes. */
+export function useWindowColors() {
+  const [colors, setColors] = useState<CSSProperties>();
+  useEffect(() => {
+    let ended = false;
+    let watching: MutationObserver | undefined;
+    highlighter.then((shiki) => {
+      if (ended) return;
+      const show = () => setColors(windowColors(shiki, shownCodeTheme()));
+      show();
+      watching = new MutationObserver(show);
+      watching.observe(document.documentElement, { attributeFilter: ['class', 'data-code-theme'] });
+    });
+    return () => {
+      ended = true;
+      watching?.disconnect();
+    };
+  }, []);
+  return colors;
+}
+
 const SEVERITIES = { error: 'Error', warning: 'Warning', info: 'Info', hint: 'Hint' } as const;
+const SEVERITY_ORDER = Object.keys(SEVERITIES);
 
 /** Monaco with Peeper in it: heavy, so loaded once, and only when a page has an editor. */
 let monaco: Promise<typeof Monaco> | undefined;
@@ -33,19 +100,17 @@ async function setUpMonaco() {
   // @ts-expect-error
   const api: typeof Monaco = await import('monaco-editor/esm/vs/editor/edcore.main.js');
   const shiki = await highlighter;
-  for (const [key, input] of Object.entries(SHIKI_THEMES)) {
-    const { background, lineHighlight } = COLORS[key.endsWith('-dark') ? 'dark' : 'light'];
-    const theme = shiki.getTheme(typeof input === 'string' ? input : (input.name ?? key));
+  for (const key of Object.keys(SHIKI_THEMES)) {
+    const { theme, problems } = themeOf(shiki, key);
     await shiki.loadTheme({
       ...theme,
       name: monacoTheme(key),
       colors: {
         ...theme.colors,
-        'editor.background': background,
-        'editorGutter.background': background,
-        'minimap.background': background,
-        'editorStickyScroll.background': background,
-        'editor.lineHighlightBackground': lineHighlight,
+        'editorError.foreground': problems.error,
+        'editorWarning.foreground': problems.warning,
+        'editorInfo.foreground': problems.info,
+        'editorHint.foreground': theme.colors?.['editorHint.foreground'] ?? problems.info,
       },
     });
   }
@@ -116,7 +181,7 @@ function CodePreview({
   );
 }
 
-/** Monaco's name for the `SHIKI_THEMES` theme `key`, with the site's own background. */
+/** Monaco's name for the `SHIKI_THEMES` theme `key`, with a color for each kind of problem. */
 function monacoTheme(key: string) {
   return `peeper-${key}`;
 }
@@ -125,47 +190,134 @@ function siteTheme() {
   return monacoTheme(shownCodeTheme());
 }
 
-/** What Monaco shows for `entry`: a wavy line, and all it said on hover. */
-function marker(api: typeof Monaco, { severity, code, message, place, related }: Entry) {
+/**
+ * What Monaco shows for `entry` in `model`: a wavy line, and all it said on hover. An empty place
+ * at a line's end, as a missing `;`, is drawn under the last character: Monaco would draw it under
+ * the next one, the inline diagnostic there.
+ */
+function marker(
+  api: typeof Monaco,
+  model: Monaco.editor.ITextModel,
+  { severity, code, message, place, related }: Entry,
+) {
   if (!place) return [];
+  const { start, end } = place;
+  const atLineEnd =
+    start.line === end.line &&
+    start.column === end.column &&
+    start.line <= model.getLineCount() &&
+    start.column > 1 &&
+    start.column >= model.getLineMaxColumn(start.line);
   return {
     severity: api.MarkerSeverity[SEVERITIES[severity]],
     code,
     message: place.message ? `${message}\n${place.message}` : message,
-    startLineNumber: place.start.line,
-    startColumn: place.start.column,
-    endLineNumber: place.end.line,
-    endColumn: place.end.column,
+    ...range(place),
+    ...(atLineEnd && { startColumn: start.column - 1 }),
     relatedInformation: related.map(({ file, message, start, end }) => ({
       resource: api.Uri.file(file),
       message,
-      startLineNumber: start.line,
-      startColumn: start.column,
-      endLineNumber: end.line,
-      endColumn: end.column,
+      ...range({ start, end }),
     })),
+  };
+}
+
+/**
+ * Hover and go to definition in Peeper files, from a checker of their own given the text of each
+ * of `models` as it is now. A definition in another file is opened with `open`, which is told where
+ * in it to land. Disposing ends them and the checker.
+ */
+function answerPlaces(
+  api: typeof Monaco,
+  models: Map<string, Monaco.editor.ITextModel>,
+  open: (file: string, at: Monaco.IRange | Monaco.IPosition | undefined) => void,
+) {
+  const checker = new Worker(new URL('../../lib/compiler/check-worker.ts', import.meta.url));
+  const waiting = new Map<number, (reply: PlaceReply) => void>();
+  let lastId = 0;
+  checker.addEventListener('message', ({ data }: MessageEvent<PlaceReply>) => {
+    waiting.get(data.id)?.(data);
+    waiting.delete(data.id);
+  });
+  const fileOf = (uri: Monaco.Uri) =>
+    [...models].find(([, model]) => model.uri.toString() === uri.toString())?.[0];
+  function ask(model: Monaco.editor.ITextModel, position: Monaco.Position) {
+    const file = fileOf(model.uri);
+    if (!file) return undefined;
+    const files = Object.fromEntries([...models].map(([name, each]) => [name, each.getValue()]));
+    const place = { file, line: position.lineNumber, column: position.column };
+    const id = ++lastId;
+    return new Promise<PlaceReply>((answer) => {
+      waiting.set(id, answer);
+      checker.postMessage({ id, files, place } satisfies CheckRequest);
+    });
+  }
+  const answers = [
+    api.languages.registerHoverProvider(LANGUAGE, {
+      async provideHover(model, position) {
+        const hover = (await ask(model, position))?.hover;
+        return hover ? { contents: [{ value: hover }] } : null;
+      },
+    }),
+    api.languages.registerDefinitionProvider(LANGUAGE, {
+      async provideDefinition(model, position) {
+        const found = (await ask(model, position))?.definition;
+        const declared = found && models.get(found.file);
+        return declared ? { uri: declared.uri, range: range(found) } : null;
+      },
+    }),
+    api.editor.registerEditorOpener({
+      openCodeEditor(source, resource, at) {
+        // The file shown moves its own cursor.
+        if (source.getModel()?.uri.toString() === resource.toString()) return false;
+        const file = fileOf(resource);
+        if (file) open(file, at);
+        return file !== undefined;
+      },
+    }),
+  ];
+  return {
+    dispose() {
+      for (const answer of answers) answer.dispose();
+      checker.terminate();
+    },
+  };
+}
+
+/** Monaco's range of what the checker gave from `start` to `end`. */
+function range({ start, end }: { start: { line: number; column: number }; end: typeof start }) {
+  return {
+    startLineNumber: start.line,
+    startColumn: start.column,
+    endLineNumber: end.line,
+    endColumn: end.column,
   };
 }
 
 /**
  * Monaco on the `active` one of `files`, each of which keeps its own undo, folds and scroll.
  * From here on a file's text is the editor's, as `files` can lag behind fast typing: to replace
- * it, give the editor a new `key`.
+ * it, give the editor a new `key`. Hover and go to definition ask a checker of its own; a name
+ * declared in another file opens it, with `onOpen`.
  */
 export function Editor({
   files,
   active,
   starting,
   entries,
+  view,
   onEdit,
   onCaret,
+  onOpen,
 }: {
   files: Record<string, string>;
   active: string;
   starting: StartingCode;
   entries: Entry[];
+  view: ViewOptions;
   onEdit: (file: string, text: string) => void;
   onCaret: (line: number, column: number) => void;
+  onOpen: (file: string) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<{
@@ -174,12 +326,16 @@ export function Editor({
   }>();
   const models = useRef(new Map<string, Monaco.editor.ITextModel>());
   const viewStates = useRef(new Map<string, Monaco.editor.ICodeEditorViewState | null>());
+  // Each file's inline diagnostics, by Monaco's ids, to replace on the next check.
+  const inline = useRef(new Map<string, string[]>());
   const [failed, setFailed] = useState(false); // Monaco did not load
   const [painted, setPainted] = useState(false); // Monaco has drawn the code
   const shown = useRef<string>(undefined);
+  // Where go to definition lands in a file it opens, once that file is shown.
+  const landing = useRef<Monaco.IRange | Monaco.IPosition>(undefined);
   // The latest callbacks: the editor outlives the render that made it.
-  const report = useRef({ onEdit, onCaret });
-  report.current = { onEdit, onCaret };
+  const report = useRef({ onEdit, onCaret, onOpen });
+  report.current = { onEdit, onCaret, onOpen };
 
   useEffect(() => {
     let ended = false;
@@ -208,19 +364,19 @@ export function Editor({
         document.fonts.ready.then(() => api.editor.remeasureFonts());
         const themes = new MutationObserver(() => api.editor.setTheme(siteTheme()));
         themes.observe(document.documentElement, { attributeFilter: ['class', 'data-code-theme'] });
-        // A phone has no width to spare for the minimap.
-        const wide = matchMedia('(min-width: 768px)');
-        const fitMinimap = () => view.updateOptions({ minimap: { enabled: wide.matches } });
-        fitMinimap();
-        wide.addEventListener('change', fitMinimap);
+        const answers = answerPlaces(api, models.current, (file, at) => {
+          landing.current = at;
+          report.current.onOpen(file);
+        });
         setEditor({ api, view });
         end = () => {
-          wide.removeEventListener('change', fitMinimap);
+          answers.dispose();
           themes.disconnect();
           view.dispose();
           for (const model of models.current.values()) model.dispose();
           models.current.clear();
           viewStates.current.clear();
+          inline.current.clear();
           shown.current = undefined;
         };
       })
@@ -250,12 +406,32 @@ export function Editor({
     view.setModel(models.current.get(active) ?? null);
     const kept = viewStates.current.get(active);
     if (kept) view.restoreViewState(kept);
+    const at = landing.current;
+    landing.current = undefined;
+    if (at && 'startLineNumber' in at) {
+      view.setSelection(at);
+      view.revealRangeInCenter(at);
+    } else if (at) {
+      view.setPosition(at);
+      view.revealPositionInCenter(at);
+    }
     shown.current = active;
     requestAnimationFrame(() => setPainted(true)); // after Monaco's own frame for the new model
     const caret = view.getPosition();
     if (caret) report.current.onCaret(caret.lineNumber, caret.column);
     if (before) view.focus();
   }, [editor, files, active]);
+
+  // A phone has no width to spare for the minimap.
+  useEffect(() => {
+    if (!editor) return;
+    const wide = matchMedia('(min-width: 768px)');
+    const fit = () =>
+      editor.view.updateOptions({ minimap: { enabled: view.minimap && wide.matches } });
+    fit();
+    wide.addEventListener('change', fit);
+    return () => wide.removeEventListener('change', fit);
+  }, [editor, view.minimap]);
 
   useEffect(() => {
     if (!editor) return;
@@ -265,10 +441,35 @@ export function Editor({
       api.editor.setModelMarkers(
         model,
         LANGUAGE,
-        own.flatMap((entry) => marker(api, entry)),
+        own.flatMap((entry) => marker(api, model, entry)),
       );
+      // After the end of each line with a problem, the first line of its worst one.
+      const lines = new Map<number, Entry>();
+      if (view.inlineDiagnostics) {
+        const worstFirst = own.toSorted(
+          (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity),
+        );
+        for (const entry of worstFirst) {
+          const line = entry.place?.start.line;
+          if (line && line <= model.getLineCount() && !lines.has(line)) lines.set(line, entry);
+        }
+      }
+      const shown = [...lines].map(([line, { severity, message }]) => {
+        const end = model.getLineMaxColumn(line);
+        return {
+          range: new api.Range(line, end, line, end),
+          options: {
+            showIfCollapsed: true,
+            after: {
+              content: `    ${message.split('\n')[0]}`,
+              inlineClassName: `inline-diagnostic inline-diagnostic-${severity}`,
+            },
+          },
+        };
+      });
+      inline.current.set(file, model.deltaDecorations(inline.current.get(file) ?? [], shown));
     }
-  }, [editor, entries]);
+  }, [editor, entries, view.inlineDiagnostics]);
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: only hears keys the editor inside it let go
@@ -283,7 +484,7 @@ export function Editor({
       <div ref={host} className="min-h-0 flex-1" />
       {/* Monaco is heavy, so until it comes the code shows as text, and stays if it never does. */}
       {!painted && (
-        <div className="absolute inset-0 overflow-auto bg-fd-card">
+        <div className="absolute inset-0 overflow-auto bg-(--editor-background,var(--color-fd-card))">
           <p
             role="status"
             className={failed ? 'p-4 font-sans text-xs text-fd-muted-foreground' : 'sr-only'}
